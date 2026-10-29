@@ -1,4 +1,4 @@
-import { Link, Outlet } from 'react-router'
+import { Link, Outlet, ScrollRestoration } from 'react-router'
 
 export function RootLayout() {
   return (
@@ -13,6 +13,8 @@ export function RootLayout() {
       <main className="mx-auto max-w-6xl px-4 py-8">
         <Outlet />
       </main>
+      {/* Volta à mesma posição de rolagem ao usar o Voltar; navegação nova começa no topo. */}
+      <ScrollRestoration />
     </div>
   )
 }

@@ -60,7 +60,25 @@ export function categoriesHandler() {
   return http.get(`${API_URL}/products/categories`, () => HttpResponse.json(catalogCategories))
 }
 
-// Tudo que a tela do catálogo busca ao abrir.
+export function productDetailHandler(options: { products?: ProductDto[]; delayMs?: number } = {}) {
+  const products = options.products ?? catalogProducts
+  return http.get(`${API_URL}/products/:id`, async ({ params }) => {
+    // /products/categories também casa com este caminho; sem retorno, o MSW passa para o próximo handler.
+    if (!/^\d+$/.test(String(params.id))) return
+    if (options.delayMs) await delay(options.delayMs)
+    const product = products.find((item) => item.id === Number(params.id))
+    return product
+      ? HttpResponse.json(product)
+      : HttpResponse.json({ message: 'not found' }, { status: 404 })
+  })
+}
+
+// Tudo que as telas do catálogo e do detalhe buscam.
 export function catalogHandlers() {
-  return [productListHandler(), categoryProductsHandler(), categoriesHandler()]
+  return [
+    productListHandler(),
+    categoryProductsHandler(),
+    categoriesHandler(),
+    productDetailHandler(),
+  ]
 }
