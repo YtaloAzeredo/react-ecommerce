@@ -1,8 +1,14 @@
 import { screen } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
+import { catalogHandlers } from '@/test/catalogHandlers'
 import { renderRoute } from '@/test/renderRoute'
+import { server } from '@/test/server'
 
 describe('rotas', () => {
+  beforeEach(() => {
+    server.use(...catalogHandlers())
+  })
+
   it('mostra o cabeçalho com o link da loja', () => {
     renderRoute('/')
 

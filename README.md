@@ -84,7 +84,7 @@ O `.env` só tem o endereço da API (`VITE_API_URL`). Sem ele, o app usa `https:
 O projeto está sendo construído em partes:
 
 - [x] **Parte 1 — Base do projeto:** ferramentas, rotas, layout e página 404
-- [ ] **Parte 2 — Catálogo paginado**
+- [x] **Parte 2 — Catálogo paginado:** 12 produtos por página vindos da API, página e categoria na URL, filtro por categoria, estados de carregando, erro e vazio, e a página anterior continua na tela enquanto a próxima carrega
 - [ ] **Parte 3 — Detalhe do produto e cache de telas**
 - [ ] **Parte 4 — Carrinho**
 - [ ] **Parte 5 — Checkout**
