@@ -1,5 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { Link, useLocation, useNavigate, useParams } from 'react-router'
+import { AddToCartButton } from '@/features/cart/components/AddToCartButton'
 import { HttpError } from '@/shared/api/http'
 import { formatPrice } from '@/shared/lib/formatPrice'
 import { StatusMessage } from '@/shared/ui/StatusMessage'
@@ -84,6 +85,7 @@ function ProductInfo({ product }: { product: Product }) {
         <p className={stock > 0 ? 'text-sm text-green-700' : 'text-sm font-medium text-red-700'}>
           {stock > 0 ? `Em estoque: ${stock}` : 'Esgotado'}
         </p>
+        <AddToCartButton product={product} />
         <p className="text-slate-700">{description}</p>
       </div>
     </div>

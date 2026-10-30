@@ -51,7 +51,8 @@ describe('ProductDetailPage', () => {
 
     renderRoute('/products/5')
 
-    expect(await screen.findByText('Esgotado')).toBeInTheDocument()
+    // A linha de estoque; o botão de adicionar também diz "Esgotado".
+    expect(await screen.findByText('Esgotado', { selector: 'p' })).toBeInTheDocument()
   })
 
   it('id que não é número mostra produto não encontrado sem chamar a API', () => {

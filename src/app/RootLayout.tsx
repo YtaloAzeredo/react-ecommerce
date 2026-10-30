@@ -1,4 +1,5 @@
 import { Link, Outlet, ScrollRestoration } from 'react-router'
+import { CartLink } from '@/features/cart/components/CartLink'
 
 export function RootLayout() {
   return (
@@ -8,6 +9,7 @@ export function RootLayout() {
           <Link to="/" className="text-xl font-bold tracking-tight">
             Vitrine
           </Link>
+          <CartLink />
         </div>
       </header>
       <main className="mx-auto max-w-6xl px-4 py-8">
