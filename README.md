@@ -79,12 +79,41 @@ O `.env` só tem o endereço da API (`VITE_API_URL`). Sem ele, o app usa `https:
 | `npm run build`      | checa os tipos e gera a versão de produção em `dist/` |
 | `npm run preview`    | serve a versão de produção localmente                 |
 
-## Status
+## Funcionalidades
 
-O projeto está sendo construído em partes:
+- **Catálogo:**
+  - 12 produtos por página, vindos da API;
+  - página e categoria ficam na URL, e dá para filtrar por categoria;
+  - há estados de carregando, erro e vazio;
+  - a página anterior continua na tela enquanto a próxima carrega.
+- **Cache de telas:**
+  - o detalhe do produto abre na hora com os dados que vieram na lista;
+  - voltar para o catálogo mostra a mesma página, na mesma posição, sem buscar de novo;
+  - a próxima página já é buscada antes do clique.
+- **Carrinho:**
+  - adicionar pelo detalhe do produto, com contador no cabeçalho;
+  - mudar quantidades e remover itens, sempre dentro do limite do estoque;
+  - o carrinho continua lá depois de atualizar a página e fica igual em todas as abas abertas;
+  - fica salvo no `localStorage`, e dado corrompido vira carrinho vazio.
+- **Checkout:**
+  - dados pessoais, endereço e pagamento por cartão de crédito (até 12x sem juros), Pix (5% de desconto) ou boleto;
+  - validação campo a campo e máscaras de CPF, telefone, CEP e cartão;
+  - os campos mudam conforme a forma de pagamento, e o total é recalculado;
+  - o envio é simulado com cerca de 1 s de espera, e o botão fica desabilitado enquanto envia, então um clique duplo não gera dois pedidos;
+  - um pagamento recusado mostra o erro sem perder o que foi digitado;
+  - dados pessoais e endereço ficam salvos como rascunho na aba (`sessionStorage`); dados de pagamento nunca são salvos.
+- **Confirmação:** mostra o número do pedido, o total e a forma de pagamento.
 
-- [x] **Parte 1 — Base do projeto:** ferramentas, rotas, layout e página 404
-- [x] **Parte 2 — Catálogo paginado:** 12 produtos por página vindos da API, página e categoria na URL, filtro por categoria, estados de carregando, erro e vazio, e a página anterior continua na tela enquanto a próxima carrega
-- [x] **Parte 3 — Detalhe do produto e cache de telas:** o detalhe abre na hora com os dados que vieram na lista, voltar para o catálogo mostra a mesma página na mesma posição sem buscar de novo, e a próxima página já é buscada antes do clique
-- [x] **Parte 4 — Carrinho:** adicionar pelo detalhe do produto, contador no cabeçalho, página do carrinho para mudar quantidades e remover itens, limite pelo estoque, e o carrinho continua lá depois de atualizar a página e fica igual em todas as abas abertas (salvo no `localStorage`; dado corrompido vira carrinho vazio)
-- [ ] **Parte 5 — Checkout**
+## Para testar
+
+Com `npm run dev` rodando:
+
+- **Cache de telas:** vá até a página 3 do catálogo, role a página, abra um produto e clique em "Voltar". A lista aparece na hora, na mesma posição.
+- **Checkout:** use dados fictícios. O CPF `529.982.247-25` é válido para teste, e qualquer validade futura serve para o cartão.
+
+| Cartão                | Resultado                                      |
+| --------------------- | ---------------------------------------------- |
+| `4242 4242 4242 4242` | aprovado                                       |
+| `4000 0000 0000 0002` | recusado (mostra o erro e mantém o formulário) |
+
+Pix e boleto são sempre aprovados.
