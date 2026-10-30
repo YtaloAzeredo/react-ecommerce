@@ -103,6 +103,7 @@ O `.env` só tem o endereço da API (`VITE_API_URL`). Sem ele, o app usa `https:
   - um pagamento recusado mostra o erro sem perder o que foi digitado;
   - dados pessoais e endereço ficam salvos como rascunho na aba (`sessionStorage`); dados de pagamento nunca são salvos.
 - **Confirmação:** mostra o número do pedido, o total e a forma de pagamento.
+- **Carregamento sob demanda:** o código do checkout (formulário, validação e formas de pagamento) só é baixado quando a pessoa vai finalizar a compra. Enquanto ele chega, uma barra no topo mostra que a página está carregando.
 
 ## Para testar
 

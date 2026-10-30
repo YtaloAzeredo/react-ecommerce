@@ -43,6 +43,13 @@ async function fillCard(user: UserEvent, cardNumber: string) {
   await fill(user, 'CVV', '123')
 }
 
+// A rota do checkout é carregada sob demanda: espera a página chegar antes de interagir.
+async function openCheckout() {
+  const rendered = renderRoute('/checkout')
+  await screen.findByRole('heading', { level: 1, name: 'Finalizar compra' })
+  return rendered
+}
+
 function summary() {
   return within(screen.getByRole('region', { name: 'Resumo do pedido' }))
 }
@@ -53,17 +60,28 @@ describe('CheckoutPage', () => {
     seedCart([cartItem])
   })
 
-  it('carrinho vazio redireciona para /cart', () => {
+  it('abrir o checkout direto mostra "Carregando…" enquanto o código da página chega', async () => {
+    renderRoute('/checkout')
+
+    expect(screen.getByText('Carregando…')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Vitrine' })).toBeInTheDocument()
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Finalizar compra' }),
+    ).toBeInTheDocument()
+    expect(screen.queryByText('Carregando…')).not.toBeInTheDocument()
+  })
+
+  it('carrinho vazio redireciona para /cart', async () => {
     localStorage.clear()
 
     const { router } = renderRoute('/checkout')
 
+    expect(await screen.findByText('Seu carrinho está vazio.')).toBeInTheDocument()
     expect(router.state.location.pathname).toBe('/cart')
-    expect(screen.getByText('Seu carrinho está vazio.')).toBeInTheDocument()
   })
 
   it('enviar vazio mostra erros por campo e foca o primeiro', async () => {
-    const { user } = renderRoute('/checkout')
+    const { user } = await openCheckout()
 
     await user.click(screen.getByRole('button', { name: 'Finalizar pedido' }))
 
@@ -78,22 +96,22 @@ describe('CheckoutPage', () => {
   })
 
   it('CPF recebe máscara', async () => {
-    const { user } = renderRoute('/checkout')
+    const { user } = await openCheckout()
 
     await user.type(screen.getByLabelText('CPF'), '52998224725')
 
     expect(screen.getByLabelText('CPF')).toHaveValue('529.982.247-25')
   })
 
-  it('telefone pede ao autopreenchimento o número sem o código do país', () => {
+  it('telefone pede ao autopreenchimento o número sem o código do país', async () => {
     // Com "tel", o navegador preenche "+55 11 …" e a máscara transformaria o 55 em DDD.
-    renderRoute('/checkout')
+    await openCheckout()
 
     expect(screen.getByLabelText('Telefone')).toHaveAttribute('autocomplete', 'tel-national')
   })
 
   it('campos de cartão só aparecem com cartão', async () => {
-    const { user } = renderRoute('/checkout')
+    const { user } = await openCheckout()
     expect(screen.getByLabelText('Número do cartão')).toBeInTheDocument()
     expect(summary().getByText('Total').nextElementSibling).toHaveTextContent('US$ 100,00')
 
@@ -107,7 +125,7 @@ describe('CheckoutPage', () => {
   it('pedido aprovado limpa o carrinho e vai para a confirmação', async () => {
     const confirmation = { orderId: 'AB12CD34', totalCents: 9500, paymentMethod: 'pix' as const }
     vi.mocked(submitOrder).mockResolvedValue(confirmation)
-    const { user, router } = renderRoute('/checkout')
+    const { user, router } = await openCheckout()
     await fillCustomerAndAddress(user)
     await user.click(screen.getByRole('radio', { name: 'Pix' }))
 
@@ -138,7 +156,7 @@ describe('CheckoutPage', () => {
       totalCents: 10000,
       paymentMethod: 'credit_card',
     })
-    const { user, router } = renderRoute('/checkout')
+    const { user, router } = await openCheckout()
     await fillCustomerAndAddress(user)
     await fillCard(user, '4242424242424242')
     await user.selectOptions(screen.getByLabelText('Parcelamento'), '3')
@@ -160,7 +178,7 @@ describe('CheckoutPage', () => {
 
   it('clique duplo envia um pedido só', async () => {
     vi.mocked(submitOrder).mockReturnValue(new Promise(() => {}))
-    const { user } = renderRoute('/checkout')
+    const { user } = await openCheckout()
     await fillCustomerAndAddress(user)
     await user.click(screen.getByRole('radio', { name: 'Pix' }))
 
@@ -172,7 +190,7 @@ describe('CheckoutPage', () => {
 
   it('cartão recusado mostra o erro e mantém o formulário', async () => {
     vi.mocked(submitOrder).mockRejectedValue(new PaymentDeclinedError())
-    const { user, router } = renderRoute('/checkout')
+    const { user, router } = await openCheckout()
     await fillCustomerAndAddress(user)
     await fillCard(user, '4000000000000002')
 
@@ -189,7 +207,7 @@ describe('CheckoutPage', () => {
 
   it('outro erro no envio mostra a mensagem genérica', async () => {
     vi.mocked(submitOrder).mockRejectedValue(new Error('falha de rede'))
-    const { user } = renderRoute('/checkout')
+    const { user } = await openCheckout()
     await fillCustomerAndAddress(user)
     await user.click(screen.getByRole('radio', { name: 'Pix' }))
 
@@ -201,12 +219,12 @@ describe('CheckoutPage', () => {
   })
 
   it('rascunho volta ao reabrir o checkout, sem os dados do cartão', async () => {
-    const first = renderRoute('/checkout')
+    const first = await openCheckout()
     await first.user.type(screen.getByLabelText('Nome completo'), 'Ana Souza')
     await first.user.type(screen.getByLabelText('Número do cartão'), '4242424242424242')
     first.unmount()
 
-    renderRoute('/checkout')
+    await openCheckout()
 
     expect(screen.getByLabelText('Nome completo')).toHaveValue('Ana Souza')
     expect(screen.getByLabelText('Número do cartão')).toHaveValue('')

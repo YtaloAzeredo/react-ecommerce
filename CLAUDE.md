@@ -16,6 +16,7 @@ Loja virtual de portfólio em React. Detalhes no `README.md`; design e plano em 
 
 ## Convenções
 
+- Nunca coloque comentários no código.
 - Código por funcionalidade em `src/features/<nome>`; o que é compartilhado fica em `src/shared`; rotas, layout e providers em `src/app`.
 - Imports a partir de `src` usam o alias `@/`.
 - Dinheiro sempre em centavos inteiros (`priceCents`, `subtotalCents`, `totalCents`); exibição só por `formatPrice`.
@@ -23,3 +24,4 @@ Loja virtual de portfólio em React. Detalhes no `README.md`; design e plano em 
 - Textos de interface em pt-BR; os dados dos produtos chegam em inglês da DummyJSON e não são traduzidos.
 - Testes ficam ao lado do arquivo (`*.test.ts[x]`), importam de `vitest` (sem globals) e mockam a rede com MSW (`src/test/server.ts`); nenhum teste acessa a API real.
 - Para testar uma tela inteira, use `renderRoute(path)` de `src/test/renderRoute.tsx`.
+- As rotas do checkout carregam sob demanda (`lazy` em `src/app/routes.tsx`, na forma de função): num teste que abre `/checkout`, espere a página com `findBy…` antes de interagir.

@@ -1,4 +1,4 @@
-import { act, screen, waitFor } from '@testing-library/react'
+import { act, screen, waitFor, within } from '@testing-library/react'
 import { http, HttpResponse } from 'msw'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { API_URL } from '@/shared/api/http'
@@ -19,6 +19,11 @@ function setScrollY(y: number) {
   Object.defineProperty(window, 'scrollY', { value: y, writable: true, configurable: true })
 }
 
+// Só o conteúdo da página: o layout tem a própria região de status (aviso de navegação).
+function inPage() {
+  return within(screen.getByRole('main'))
+}
+
 describe('CatalogPage', () => {
   beforeEach(() => {
     server.use(...catalogHandlers())
@@ -27,7 +32,7 @@ describe('CatalogPage', () => {
   it('mostra os produtos da página pedida na URL', async () => {
     renderRoute('/?page=2')
 
-    expect(screen.getByRole('status')).toHaveTextContent('Carregando produtos…')
+    expect(inPage().getByRole('status')).toHaveTextContent('Carregando produtos…')
     expect(await screen.findByRole('link', { name: productLink(13) })).toHaveAttribute(
       'href',
       '/products/13',
@@ -70,7 +75,7 @@ describe('CatalogPage', () => {
     await user.click(screen.getByRole('link', { name: 'Ver todos os produtos' }))
 
     expect(screen.queryByText('Nenhum produto encontrado.')).not.toBeInTheDocument()
-    expect(screen.getByRole('status')).toHaveTextContent('Carregando produtos…')
+    expect(inPage().getByRole('status')).toHaveTextContent('Carregando produtos…')
     expect(await screen.findByRole('link', { name: productLink(1) })).toBeInTheDocument()
   })
 
@@ -134,7 +139,7 @@ describe('CatalogPage', () => {
 
     expect(router.state.location.search).toBe('?page=2')
     expect(screen.getByRole('link', { name: productLink(13) })).toBeInTheDocument()
-    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+    expect(inPage().queryByRole('status')).not.toBeInTheDocument()
     expect(pageTwoRequests).toBe(1)
   })
 
