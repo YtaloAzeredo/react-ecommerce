@@ -13,6 +13,7 @@ Loja virtual de portfólio em React. Detalhes no `README.md`; design e plano em 
 - `npm run lint` — oxlint
 - `npm run format` / `npm run format:check` — Prettier
 - `npm run build` — checagem de tipos + build
+- CI: `.github/workflows/ci.yml` roda `format:check`, `lint`, `test` e `build` a cada push; os quatro precisam passar antes de dar uma tarefa por terminada.
 
 ## Convenções
 

@@ -83,15 +83,20 @@ O `.env` só tem o endereço da API (`VITE_API_URL`). Sem ele, o app usa `https:
 
 ### Comandos
 
-| Comando              | O que faz                                             |
-| -------------------- | ----------------------------------------------------- |
-| `npm run dev`        | sobe o app em modo de desenvolvimento                 |
-| `npm test`           | roda os testes uma vez                                |
-| `npm run test:watch` | roda os testes a cada mudança                         |
-| `npm run lint`       | verifica o código com o oxlint                        |
-| `npm run format`     | formata o código com o Prettier                       |
-| `npm run build`      | checa os tipos e gera a versão de produção em `dist/` |
-| `npm run preview`    | serve a versão de produção localmente                 |
+| Comando                | O que faz                                             |
+| ---------------------- | ----------------------------------------------------- |
+| `npm run dev`          | sobe o app em modo de desenvolvimento                 |
+| `npm test`             | roda os testes uma vez                                |
+| `npm run test:watch`   | roda os testes a cada mudança                         |
+| `npm run lint`         | verifica o código com o oxlint                        |
+| `npm run format`       | formata o código com o Prettier                       |
+| `npm run format:check` | confere a formatação sem alterar os arquivos          |
+| `npm run build`        | checa os tipos e gera a versão de produção em `dist/` |
+| `npm run preview`      | serve a versão de produção localmente                 |
+
+### Integração contínua
+
+A cada push, em qualquer branch, o GitHub Actions (`.github/workflows/ci.yml`) instala as dependências com `npm ci` usando a versão do Node do `.nvmrc` e roda, nesta ordem, `npm run format:check`, `npm run lint`, `npm test` e `npm run build`. Também dá para rodar à mão pela aba Actions do repositório.
 
 ## Funcionalidades
 
