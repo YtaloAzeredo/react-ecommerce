@@ -68,7 +68,7 @@ Escolhas que não dá para ver só lendo o código:
 
 ### Requisitos
 
-- **Node 24.15 ou mais novo.** A versão está fixada no `.nvmrc`; com o [nvm](https://github.com/nvm-sh/nvm), basta `nvm use` na pasta do projeto.
+- **Node 24, a partir da 24.15.** A versão está fixada no `.nvmrc`; com o [nvm](https://github.com/nvm-sh/nvm), basta `nvm use` na pasta do projeto.
 - npm (vem com o Node).
 
 ### Instalação
@@ -97,6 +97,13 @@ O `.env` só tem o endereço da API (`VITE_API_URL`). Sem ele, o app usa `https:
 ### Integração contínua
 
 A cada push, em qualquer branch, o GitHub Actions (`.github/workflows/ci.yml`) instala as dependências com `npm ci` usando a versão do Node do `.nvmrc` e roda, nesta ordem, `npm run format:check`, `npm run lint`, `npm test` e `npm run build`. Também dá para rodar à mão pela aba Actions do repositório.
+
+### Publicação
+
+O app é publicado na [Vercel](https://vercel.com), conectada ao repositório do GitHub: cada push na `main` atualiza a produção, e cada push em outra branch gera uma prévia com endereço próprio. A Vercel detecta o Vite sozinha (build com `npm run build`, saída em `dist/`) e não precisa de variável de ambiente, porque sem `VITE_API_URL` o app usa a DummyJSON.
+
+- O `vercel.json` manda qualquer caminho para o `index.html`, para que um link aberto direto (`/products/5`, `/cart`, `/checkout`) carregue o app em vez de um 404.
+- A versão do Node do build vem do `engines` do `package.json` (`^24.15.0`), a mesma do `.nvmrc` e do CI: a Vercel não lê o `.nvmrc`, e com um intervalo aberto (`>=24.15.0`) ela usaria a versão mais nova que tiver.
 
 ## Funcionalidades
 

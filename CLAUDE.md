@@ -4,7 +4,7 @@ Loja virtual de portfólio em React. Detalhes no `README.md`; design e plano em 
 
 ## Ambiente
 
-- Node 24.15 ou mais novo, fixado no `.nvmrc` (React Router 8, Vitest 5, jsdom 30 e MSW 3 exigem Node ≥ 22.22). Confira com `node -v` antes de rodar `npm`; com nvm, `nvm use` na raiz do projeto.
+- Node 24, a partir da 24.15, fixado no `.nvmrc` e no `engines` do `package.json` (React Router 8, Vitest 5, jsdom 30 e MSW 3 exigem Node ≥ 22.22). Mudar a versão do Node é mudar os três juntos: `.nvmrc` (local e CI), `engines` (a Vercel usa este) e o lockfile. Confira com `node -v` antes de rodar `npm`; com nvm, `nvm use` na raiz do projeto.
 
 ## Comandos
 
@@ -13,6 +13,7 @@ Loja virtual de portfólio em React. Detalhes no `README.md`; design e plano em 
 - `npm run lint` — oxlint
 - `npm run format` / `npm run format:check` — Prettier
 - `npm run build` — checagem de tipos + build
+- Deploy: Vercel, conectada ao GitHub (push na `main` publica; outras branches geram prévia); `vercel.json` manda toda rota para o `index.html`.
 - CI: `.github/workflows/ci.yml` roda `format:check`, `lint`, `test` e `build` a cada push; os quatro precisam passar antes de dar uma tarefa por terminada.
 
 ## Convenções
