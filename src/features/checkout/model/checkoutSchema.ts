@@ -36,7 +36,6 @@ function requiredText(message: string) {
   return z.string().trim().min(1, message)
 }
 
-// Os campos com máscara guardam o texto formatado; as regras olham só os dígitos.
 function digitCount(min: number, max: number, message: string) {
   return z.string().refine((value) => {
     const length = onlyDigits(value).length
@@ -66,8 +65,6 @@ const addressSchema = z.object({
 
 const installmentsMessage = 'Escolha o parcelamento'
 
-// Cada forma de pagamento tem os próprios campos: com a união discriminada por `method`, os campos
-// do cartão só são exigidos quando o cartão está escolhido.
 const paymentSchema = z.discriminatedUnion('method', [
   z.object({
     method: z.literal('credit_card'),

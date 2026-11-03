@@ -3,7 +3,6 @@ export interface CartItem {
   title: string
   priceCents: number
   thumbnailUrl: string
-  // Estoque do produto quando foi adicionado; o carrinho nunca passa disso.
   maxQuantity: number
   quantity: number
 }
@@ -29,7 +28,6 @@ export function cartReducer(state: CartState, action: CartAction): CartState {
       const existing = state.items.find((item) => item.productId === action.item.productId)
       const quantity = Math.min((existing?.quantity ?? 0) + adding, action.item.maxQuantity)
       if (quantity <= 0) return state
-      // O produto adicionado de novo traz preço e estoque atualizados; a posição na lista se mantém.
       const added = { ...action.item, quantity }
       return existing
         ? { items: state.items.map((item) => (item === existing ? added : item)) }

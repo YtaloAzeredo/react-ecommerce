@@ -1,7 +1,5 @@
 export type PageItem = number | 'ellipsis'
 
-// Sempre no máximo 7 posições, para a paginação não mudar de largura ao navegar:
-// primeira, última, a atual com uma vizinha de cada lado e reticências onde houver salto.
 const MAX_ITEMS = 7
 
 export function getPageItems(current: number, totalPages: number): PageItem[] {

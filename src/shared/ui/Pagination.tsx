@@ -2,9 +2,6 @@ import { createContext, use, type ReactNode } from 'react'
 import { Link } from 'react-router'
 import { getPageItems } from '@/shared/lib/getPageItems'
 
-// Compound component: a raiz guarda o estado e cada parte (Previous, Items, Next) lê do contexto,
-// então quem usa escolhe quais partes aparecem e em que ordem, sem uma lista de props booleanas.
-
 interface PaginationContextValue {
   page: number
   totalPages: number

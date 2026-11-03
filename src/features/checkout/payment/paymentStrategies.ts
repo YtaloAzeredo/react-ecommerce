@@ -2,8 +2,6 @@ import type { ComponentType } from 'react'
 import type { CheckoutFormValues, PaymentMethod } from '../model/checkoutSchema'
 import { CreditCardFields } from './CreditCardFields'
 
-// Strategy: tudo o que muda de uma forma de pagamento para outra fica num objeto só. O checkout não
-// tem um `if (method === 'pix')`; ele pergunta à estratégia escolhida.
 export interface PaymentStrategy {
   method: PaymentMethod
   label: string

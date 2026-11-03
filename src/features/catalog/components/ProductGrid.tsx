@@ -1,7 +1,6 @@
 import type { Product } from '../model/types'
 import { ProductCard } from './ProductCard'
 
-// busy: a próxima página está carregando e esta ainda é a anterior (placeholder do cache).
 export function ProductGrid({ products, busy }: { products: Product[]; busy: boolean }) {
   return (
     <ul

@@ -60,7 +60,6 @@ describe('Pagination', () => {
   })
 
   it('subcomponente fora de <Pagination> lança erro', () => {
-    // O React registra o erro de renderização no console; aqui ele é esperado.
     vi.spyOn(console, 'error').mockImplementation(() => {})
 
     expect(() =>

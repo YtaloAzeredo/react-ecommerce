@@ -14,8 +14,6 @@ import { getPaymentStrategy } from '../payment/paymentStrategies'
 
 export function CheckoutPage() {
   const { items } = useCart()
-  // Com o pedido feito, o carrinho esvazia antes de a rota trocar para a confirmação; sem isto, o
-  // redirecionamento de carrinho vazio mandaria a pessoa para /cart no meio do caminho.
   const [orderPlaced, setOrderPlaced] = useState(false)
 
   if (items.length === 0 && !orderPlaced) return <Navigate to="/cart" replace />
@@ -26,8 +24,6 @@ function CheckoutForm({ onOrderPlaced }: { onOrderPlaced: () => void }) {
   const { items, subtotalCents, clear } = useCart()
   const navigate = useNavigate()
   const [submitError, setSubmitError] = useState<string | null>(null)
-  // Lê o rascunho uma vez, na montagem. (Uma função em `defaultValues` o React Hook Form trata como
-  // assíncrona: o formulário começaria sem valores.)
   const [defaultValues] = useState(buildDefaultValues)
 
   const form = useForm({
@@ -38,7 +34,6 @@ function CheckoutForm({ onOrderPlaced }: { onOrderPlaced: () => void }) {
   const method = useWatch({ control: form.control, name: 'payment.method' })
   const totalCents = getPaymentStrategy(method).computeTotalCents(subtotalCents)
 
-  // Dados pessoais e endereço sobrevivem a recarregar a página ou voltar ao carrinho.
   useEffect(
     () =>
       form.subscribe({
@@ -109,7 +104,6 @@ function buildDefaultValues() {
   const draft = loadCheckoutDraft()
   return {
     customer: { fullName: '', email: '', cpf: '', phone: '', ...draft?.customer },
-    // O estado fica de fora: sem valor, o select mostra "Selecione".
     address: {
       cep: '',
       street: '',

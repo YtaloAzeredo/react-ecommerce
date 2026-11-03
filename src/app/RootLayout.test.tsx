@@ -3,7 +3,6 @@ import { describe, expect, it, vi } from 'vitest'
 import { makeCartItem, seedCart } from '@/test/fixtures'
 import { renderRoute } from '@/test/renderRoute'
 
-// Segura o código da página de checkout até o teste liberar, como numa rede lenta.
 const checkoutCode = vi.hoisted(() => {
   let release = () => {}
   const arrived = new Promise<void>((resolve) => {

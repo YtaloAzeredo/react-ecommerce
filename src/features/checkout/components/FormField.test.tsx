@@ -21,7 +21,6 @@ describe('FormField com máscara', () => {
     const input = screen.getByLabelText('Telefone')
     await user.type(input, '11987654321')
 
-    // Cursor logo depois do "8" de (11) 98765-4321: apaga o 8 e digita 7 no lugar.
     await user.type(input, '{backspace}7', { initialSelectionStart: 7, initialSelectionEnd: 7 })
 
     expect(input).toHaveValue('(11) 97765-4321')
@@ -38,7 +37,6 @@ describe('FormField com máscara', () => {
     const input = screen.getByLabelText('Número do cartão')
     await user.type(input, '42424242424242')
 
-    // Faltam dois dígitos: insere "99" logo depois do primeiro grupo, antes do espaço.
     await user.type(input, '99', { initialSelectionStart: 4, initialSelectionEnd: 4 })
 
     expect(input).toHaveValue('4242 9942 4242 4242')

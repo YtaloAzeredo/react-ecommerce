@@ -6,8 +6,6 @@ import { AppProviders } from '@/app/AppProviders'
 import { routes } from '@/app/routes'
 import { createTestQueryClient } from './queryClient'
 
-// Renderiza o app inteiro numa rota, com os mesmos providers do app de verdade. `state` é o estado de
-// navegação, como o que o checkout passa para a página de confirmação.
 export function renderRoute(
   path: string,
   options: { queryClient?: QueryClient; state?: unknown } = {},

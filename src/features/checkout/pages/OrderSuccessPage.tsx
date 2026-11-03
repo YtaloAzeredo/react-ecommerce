@@ -3,8 +3,6 @@ import { formatPrice } from '@/shared/lib/formatPrice'
 import type { OrderConfirmation } from '../api/orderService'
 import { getPaymentStrategy, paymentStrategies } from '../payment/paymentStrategies'
 
-// O pedido chega pelo estado da navegação, que pode estar vazio (link aberto direto) ou ter vindo de
-// outra versão do app; só um pedido completo é mostrado.
 function isOrderConfirmation(value: unknown): value is OrderConfirmation {
   if (typeof value !== 'object' || value === null) return false
   const { orderId, totalCents, paymentMethod } = value as Record<string, unknown>

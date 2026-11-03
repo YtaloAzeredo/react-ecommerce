@@ -35,7 +35,6 @@ describe('CreditCardFields', () => {
     const select = screen.getByRole('combobox', { name: 'Parcelamento' })
 
     expect(within(select).getAllByRole('option')).toHaveLength(12)
-    // O nome acessível mantém o espaço não separável que o formatPrice põe depois de "US$".
     expect(
       within(select).getByRole('option', { name: '3x de US$\u00a033,34 sem juros' }),
     ).toBeTruthy()

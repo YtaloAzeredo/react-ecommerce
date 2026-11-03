@@ -8,8 +8,6 @@ type CheckoutFieldPath = FieldPath<CheckoutFormValues>
 const controlClass =
   'h-10 w-full rounded-md border border-slate-300 bg-white px-3 aria-invalid:border-red-600'
 
-// O erro fica ligado ao campo por aria-describedby: quem chega ao campo com leitor de tela ouve o
-// rótulo e o problema juntos.
 function useFieldState(name: CheckoutFieldPath) {
   const { register, getFieldState, formState } = useFormContext<CheckoutFormValues>()
   const id = useId()
@@ -56,9 +54,6 @@ function FieldShell({
   )
 }
 
-// Trocar o valor do campo manda o cursor para o fim; quem corrigisse um dígito no meio digitaria o
-// próximo no fim e gravaria outro número. As máscaras daqui só têm dígitos e separadores, então o
-// cursor volta para depois do mesmo número de dígitos que havia antes dele.
 function applyMask(input: HTMLInputElement, mask: (value: string) => string) {
   const caret = input.selectionStart ?? input.value.length
   const digitsBeforeCaret = onlyDigits(input.value.slice(0, caret)).length
@@ -89,7 +84,6 @@ export function FormField({ name, label, mask, className, ...inputProps }: FormF
         {...field}
         {...controlProps}
         onChange={(event) => {
-          // A máscara entra antes de o React Hook Form ler o valor: o formulário guarda o texto formatado.
           if (mask) applyMask(event.target, mask)
           return onChange(event)
         }}

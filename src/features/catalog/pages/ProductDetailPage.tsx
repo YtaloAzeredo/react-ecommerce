@@ -19,9 +19,7 @@ export function ProductDetailPage() {
   const { productId = '' } = useParams()
   return (
     <article className="flex flex-col gap-6">
-      {/* Fora dos estados: a pessoa sempre tem como voltar, mesmo no erro ou no "não encontrado". */}
       <BackLink />
-      {/* /products/abc nem chega a consultar a API. */}
       {/^\d+$/.test(productId) ? <ProductDetail id={Number(productId)} /> : <ProductNotFound />}
     </article>
   )
@@ -41,8 +39,6 @@ function ProductDetail({ id }: { id: number }) {
         Tentar novamente
       </button>
     )
-    // Num erro, o TanStack Query descarta o dado provisório; o que já estava na tela continua
-    // valendo (veio da lista ou de uma busca anterior), então o produto fica com um aviso.
     const shown = product.data ?? findProductInLists(queryClient, id)
     if (!shown) {
       return (
@@ -92,8 +88,6 @@ function ProductInfo({ product }: { product: Product }) {
   )
 }
 
-// Volta pelo histórico quando a pessoa veio de dentro do app, para cair na mesma página e posição
-// do catálogo; quem abriu o link direto não tem para onde voltar e vai para a lista.
 function BackLink() {
   const location = useLocation()
   const navigate = useNavigate()

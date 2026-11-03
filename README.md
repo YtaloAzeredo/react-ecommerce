@@ -50,6 +50,20 @@ src/
 └── test/        # configuração e utilitários dos testes
 ```
 
+### Decisões técnicas
+
+Escolhas que não dá para ver só lendo o código:
+
+- **A página anterior só fica na tela se for da mesma categoria.** Ao trocar de página, a lista anterior continua visível enquanto a nova carrega. Ao trocar de categoria isso não acontece: mostrar produtos de outra categoria sob o título novo seria pior que o "Carregando" (`useProducts`).
+- **O carrinho fica igual em todas as abas.** Cada aba guarda o carrinho em memória e regrava o `localStorage` a cada mudança; sem ouvir o evento `storage`, uma aba aberta antes apagaria o que a outra adicionou (`CartProvider`).
+- **Apagar o campo de quantidade não remove o item.** O texto em edição fica só no campo e só um inteiro a partir de 1 chega ao carrinho; para remover existe o botão "Remover" (`CartLineItem`).
+- **As máscaras mantêm o cursor no lugar.** Reescrever o valor do campo manda o cursor para o fim; quem corrigisse um dígito no meio do telefone digitaria o próximo no fim e gravaria outro número válido. Depois de aplicar a máscara, o cursor volta para depois do mesmo número de dígitos (`FormField`).
+- **O telefone pede ao autopreenchimento o número nacional.** Com `autocomplete="tel"`, o navegador preenche `+55 11 …` e a máscara transformaria o 55 em DDD; `tel-national` traz só DDD e número (`CustomerFields`).
+- **O pedido é marcado como feito antes de esvaziar o carrinho.** O carrinho esvazia antes de a rota trocar para a confirmação; sem a marcação, o redirecionamento de "carrinho vazio" mandaria a pessoa para `/cart` no meio do caminho (`CheckoutPage`).
+- **Os valores iniciais do formulário são calculados uma vez com `useState`.** O React Hook Form trata uma função em `defaultValues` como valores assíncronos, e o formulário começaria sem forma de pagamento (`CheckoutPage`).
+- **As rotas sob demanda usam o `lazy` na forma de função.** Na forma de objeto, o React Router esvazia o próprio objeto depois de carregar, e um segundo router criado com as mesmas rotas (como nos testes) ficaria sem a página (`routes.tsx`).
+- **Nos testes, requisição sem handler é erro.** No MSW 3 a opção se chama `onUnhandledFrame`; com o nome antigo (`onUnhandledRequest`) ela é ignorada e a requisição iria para a DummyJSON de verdade (`src/test/setup.ts`).
+
 ## Como rodar
 
 ### Requisitos

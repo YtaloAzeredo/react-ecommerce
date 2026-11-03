@@ -8,8 +8,6 @@ export type CheckoutDraft = {
   address: Partial<CheckoutFormValues['address']>
 }
 
-// Só textos soltos: o rascunho guarda o que a pessoa digitou, ainda sem validar. Campos fora deste
-// formato (inclusive qualquer coisa de pagamento) são descartados ao carregar.
 const draftSchema = z.object({
   customer: z
     .object({ fullName: z.string(), email: z.string(), cpf: z.string(), phone: z.string() })
@@ -42,7 +40,6 @@ export function loadCheckoutDraft(storage?: Storage): CheckoutDraft | null {
   }
 }
 
-// Dados de pagamento nunca vão para o storage: só dados pessoais e endereço são copiados.
 export function saveCheckoutDraft(
   values: { customer?: unknown; address?: unknown; payment?: unknown },
   storage?: Storage,
@@ -50,15 +47,11 @@ export function saveCheckoutDraft(
   try {
     const draft = { customer: values.customer ?? {}, address: values.address ?? {} }
     sessionStorageOr(storage).setItem(CHECKOUT_DRAFT_KEY, JSON.stringify(draft))
-  } catch {
-    // sem rascunho nesta sessão
-  }
+  } catch {}
 }
 
 export function clearCheckoutDraft(storage?: Storage): void {
   try {
     sessionStorageOr(storage).removeItem(CHECKOUT_DRAFT_KEY)
-  } catch {
-    // nada a apagar
-  }
+  } catch {}
 }

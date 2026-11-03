@@ -25,8 +25,6 @@ export function PaymentSection({ subtotalCents }: { subtotalCents: number }) {
                 checked={option.method === method}
                 aria-describedby={`payment-${option.method}-description`}
                 onChange={() => {
-                  // Trocar de forma de pagamento descarta o que foi digitado na anterior (inclusive
-                  // o cartão) e os erros dela.
                   setValue('payment', option.defaultValues)
                   clearErrors('payment')
                 }}

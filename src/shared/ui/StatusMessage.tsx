@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react'
 
-// Carregando, vazio e erro com a mesma cara. Erro usa role="alert" para ser anunciado na hora.
 export function StatusMessage({
   children,
   action,

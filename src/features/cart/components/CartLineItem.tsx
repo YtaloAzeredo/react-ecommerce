@@ -10,7 +10,6 @@ const stepButtonClass =
 export function CartLineItem({ item }: { item: CartItem }) {
   const { setQuantity, remove } = useCart()
   const { productId, title, priceCents, thumbnailUrl, maxQuantity, quantity } = item
-  // Texto em edição no campo de quantidade; null mostra a quantidade do carrinho.
   const [draft, setDraft] = useState<string | null>(null)
 
   return (
@@ -48,8 +47,6 @@ export function CartLineItem({ item }: { item: CartItem }) {
             onChange={(event) => {
               const value = event.target.value
               const next = Number(value)
-              // Só número inteiro positivo chega ao carrinho: o campo vazio no meio da digitação não
-              // pode remover o item (para isso existe o "Remover").
               if (value !== '' && Number.isInteger(next) && next >= 1) {
                 setQuantity(productId, next)
                 setDraft(null)

@@ -7,8 +7,6 @@ import { renderRoute } from '@/test/renderRoute'
 import { PaymentDeclinedError, submitOrder } from '../api/orderService'
 import { loadCheckoutDraft } from '../model/checkoutDraft'
 
-// O envio é trocado por um mock para cada teste decidir a resposta; o erro de recusa continua o real,
-// porque a página o reconhece pela classe.
 vi.mock('../api/orderService', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../api/orderService')>()
   return { ...actual, submitOrder: vi.fn() }
@@ -16,8 +14,6 @@ vi.mock('../api/orderService', async (importOriginal) => {
 
 const cartItem = makeCartItem({ productId: 1, priceCents: 10000, quantity: 1 })
 
-// Os campos de apoio são colados, não digitados: um evento por campo em vez de um por tecla mantém
-// os testes rápidos. A máscara se aplica do mesmo jeito; quem testa digitação é o teste do CPF.
 async function fill(user: UserEvent, label: string, value: string) {
   await user.click(screen.getByLabelText(label))
   await user.paste(value)
@@ -43,7 +39,6 @@ async function fillCard(user: UserEvent, cardNumber: string) {
   await fill(user, 'CVV', '123')
 }
 
-// A rota do checkout é carregada sob demanda: espera a página chegar antes de interagir.
 async function openCheckout() {
   const rendered = renderRoute('/checkout')
   await screen.findByRole('heading', { level: 1, name: 'Finalizar compra' })
@@ -104,7 +99,6 @@ describe('CheckoutPage', () => {
   })
 
   it('telefone pede ao autopreenchimento o número sem o código do país', async () => {
-    // Com "tel", o navegador preenche "+55 11 …" e a máscara transformaria o 55 em DDD.
     await openCheckout()
 
     expect(screen.getByLabelText('Telefone')).toHaveAttribute('autocomplete', 'tel-national')

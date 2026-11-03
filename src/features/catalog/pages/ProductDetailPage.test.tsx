@@ -51,7 +51,6 @@ describe('ProductDetailPage', () => {
 
     renderRoute('/products/5')
 
-    // A linha de estoque; o botão de adicionar também diz "Esgotado".
     expect(await screen.findByText('Esgotado', { selector: 'p' })).toBeInTheDocument()
   })
 
@@ -82,7 +81,6 @@ describe('ProductDetailPage', () => {
   })
 
   it('erro na API mostra mensagem e permite tentar de novo', async () => {
-    // No server.use, o primeiro handler tem prioridade: o 500 de uso único vem antes do normal.
     server.use(
       http.get(`${API_URL}/products/5`, () => new HttpResponse(null, { status: 500 }), {
         once: true,
@@ -123,7 +121,6 @@ describe('ProductDetailPage', () => {
     const { router, user } = renderRoute('/products/5')
     await screen.findByRole('heading', { level: 1, name: 'Produto 5' })
 
-    // O catálogo busca dados ao abrir; aqui só importa para onde o link leva.
     server.use(http.get(`${API_URL}/*`, () => HttpResponse.json({ products: [], total: 0 })))
     await user.click(screen.getByRole('link', { name: 'Voltar' }))
 

@@ -26,7 +26,6 @@ export function AddToCartButton({ product }: { product: Product }) {
       {atLimit && (
         <p className="text-sm text-slate-600">Todo o estoque deste produto já está no carrinho.</p>
       )}
-      {/* A região fica sempre na página: leitores de tela só anunciam mudanças numa região que já existia. */}
       <p role="status" className="text-sm text-green-700">
         {added && (
           <>

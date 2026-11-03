@@ -8,7 +8,6 @@ export function ProductCard({ product }: { product: Product }) {
       to={`/products/${product.id}`}
       className="flex h-full flex-col rounded-lg border border-slate-200 bg-white p-4 transition hover:border-slate-400 hover:shadow-sm"
     >
-      {/* alt vazio: o título logo abaixo já descreve o produto, e o link não fica com o nome repetido. */}
       <img
         src={product.thumbnailUrl}
         alt=""

@@ -2,7 +2,6 @@ import { onlyDigits } from './masks'
 
 export function isValidCpf(value: string): boolean {
   const digits = onlyDigits(value)
-  // 111.111.111-11 e afins passam na conta dos dígitos verificadores, mas não são CPFs válidos.
   if (digits.length !== 11 || /^(\d)\1{10}$/.test(digits)) return false
   const checkDigit = (length: number) => {
     let sum = 0
@@ -13,7 +12,6 @@ export function isValidCpf(value: string): boolean {
   return checkDigit(9) === Number(digits[9]) && checkDigit(10) === Number(digits[10])
 }
 
-// Algoritmo de Luhn: pega erros de digitação, não diz se o cartão existe.
 export function isValidCardNumber(value: string): boolean {
   const digits = value.replace(/\s/g, '')
   if (!/^\d{13,19}$/.test(digits)) return false
@@ -29,7 +27,6 @@ export function isValidCardNumber(value: string): boolean {
   return sum % 10 === 0
 }
 
-// O cartão vale até o último dia do mês impresso.
 export function isValidExpiry(value: string, now: Date = new Date()): boolean {
   const match = /^(\d{2})\/(\d{2})$/.exec(value)
   if (!match) return false

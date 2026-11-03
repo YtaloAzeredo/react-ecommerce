@@ -11,15 +11,12 @@ import { makeProductDto } from '@/test/fixtures'
 import { renderRoute } from '@/test/renderRoute'
 import { server } from '@/test/server'
 
-// O nome acessível do card é "título preço"; o espaço depois do número evita "Produto 1" casar com "Produto 13".
 const productLink = (id: number) => new RegExp(`^Produto ${id} `)
 
-// O jsdom não rola; simulamos a posição para o ScrollRestoration salvar e restaurar.
 function setScrollY(y: number) {
   Object.defineProperty(window, 'scrollY', { value: y, writable: true, configurable: true })
 }
 
-// Só o conteúdo da página: o layout tem a própria região de status (aviso de navegação).
 function inPage() {
   return within(screen.getByRole('main'))
 }
@@ -116,7 +113,6 @@ describe('CatalogPage', () => {
     )
     renderRoute('/?category=beauty')
 
-    // toHaveTextContent normaliza o espaço não separável do preço para um espaço comum.
     expect(await screen.findByRole('link', { name: productLink(99) })).toHaveTextContent(
       'US$ 1.099,99',
     )
@@ -168,7 +164,6 @@ describe('CatalogPage', () => {
 
       await user.click(card)
       await screen.findByRole('heading', { level: 1, name: 'Produto 13' })
-      // Abrir um produto é navegação nova: começa no topo.
       expect(scrolls.at(-1)?.y).toBe(0)
 
       setScrollY(0)

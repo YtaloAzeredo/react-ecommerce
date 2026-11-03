@@ -13,7 +13,6 @@ export interface OrderConfirmation {
   paymentMethod: PaymentMethod
 }
 
-// Cartão de teste que a "operadora" sempre recusa, para dar para ver o tratamento de erro.
 export const DECLINED_CARD_NUMBER = '4000000000000002'
 
 export class PaymentDeclinedError extends Error {
@@ -23,8 +22,6 @@ export class PaymentDeclinedError extends Error {
   }
 }
 
-// Não existe backend: o pedido é "enviado" com uma espera que imita a rede, para o formulário
-// mostrar o estado de envio de verdade.
 export async function submitOrder(
   order: OrderRequest,
   { delayMs = 1000 }: { delayMs?: number } = {},

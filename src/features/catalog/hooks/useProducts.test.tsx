@@ -16,7 +16,6 @@ describe('useProducts', () => {
     })
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
-    // Página 3, não a 2: a 2 já foi pré-buscada e abriria direto do cache.
     rerender({ page: 3, category: null })
 
     expect(result.current.data?.page).toBe(1)

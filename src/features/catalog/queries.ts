@@ -4,7 +4,6 @@ import type { Product, ProductPage } from './model/types'
 
 export type ProductListParams = { page: number; category: string | null }
 
-// Chaves hierárquicas: invalidar productKeys.all atinge listas e detalhes de uma vez.
 export const productKeys = {
   all: ['products'] as const,
   lists: () => [...productKeys.all, 'list'] as const,
@@ -38,7 +37,6 @@ export function productDetailQuery(id: number) {
   })
 }
 
-// A lista já trouxe o produto completo; procurar nela deixa o detalhe abrir sem esperar a API.
 export function findProductInLists(queryClient: QueryClient, id: number): Product | undefined {
   for (const [, page] of queryClient.getQueriesData<ProductPage>({
     queryKey: productKeys.lists(),

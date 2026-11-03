@@ -6,8 +6,6 @@ import { CartProvider } from './CartProvider'
 import { CART_STORAGE_KEY, loadCart } from './model/cartStorage'
 import { useCart } from './useCart'
 
-// O navegador avisa as outras abas com o evento storage; no jsdom só existe esta janela, então o
-// evento é disparado à mão (key null é o que chega quando a outra aba chama localStorage.clear()).
 function notifyOtherTabs(key: string | null) {
   act(() => {
     window.dispatchEvent(new StorageEvent('storage', { key }))
@@ -69,7 +67,6 @@ describe('useCart', () => {
   })
 
   it('fora do provider lança erro', () => {
-    // O React registra o erro de renderização no console; aqui ele é esperado.
     vi.spyOn(console, 'error').mockImplementation(() => {})
 
     expect(() => renderHook(() => useCart())).toThrow(

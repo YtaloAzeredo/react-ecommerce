@@ -18,7 +18,6 @@ export function CatalogPage() {
   const categoryName = categories.data?.find((item) => item.slug === category)?.name
   const title = category ? (categoryName ?? category) : 'Produtos'
 
-  // Página além do fim (link antigo ou digitado): troca a URL pela última página sem empilhar histórico.
   if (products.data && !products.isPlaceholderData && page > products.data.totalPages) {
     return <Navigate to={hrefFor({ page: products.data.totalPages })} replace />
   }

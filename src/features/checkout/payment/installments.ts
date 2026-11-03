@@ -1,4 +1,3 @@
-// Sem juros: a parcela é arredondada para cima, para a soma nunca ficar abaixo do total.
 export function getInstallmentOptions(
   totalCents: number,
 ): Array<{ count: number; amountCents: number }> {

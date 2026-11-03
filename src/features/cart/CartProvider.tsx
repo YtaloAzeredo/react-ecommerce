@@ -10,15 +10,12 @@ import { CART_STORAGE_KEY, loadCart, saveCart } from './model/cartStorage'
 import { CartContext, type CartContextValue } from './useCart'
 
 export function CartProvider({ children }: { children: ReactNode }) {
-  // Lê o storage uma vez, na montagem, e não a cada renderização.
   const [state, dispatch] = useReducer(cartReducer, undefined, () => loadCart())
 
   useEffect(() => {
     saveCart(state)
   }, [state])
 
-  // Outra aba mudou o carrinho: sem recarregar daqui, a próxima gravação desta aba apagaria o que a
-  // outra adicionou. Regravar o mesmo valor não dispara o evento de novo, então não há vaivém.
   useEffect(() => {
     function onStorage(event: StorageEvent) {
       if (event.key === CART_STORAGE_KEY || event.key === null) {
@@ -29,8 +26,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener('storage', onStorage)
   }, [])
 
-  // Um objeto novo a cada renderização do provider faria todos os consumidores renderizarem de novo;
-  // memorizado, o valor só muda quando o carrinho muda.
   const value = useMemo<CartContextValue>(
     () => ({
       items: state.items,

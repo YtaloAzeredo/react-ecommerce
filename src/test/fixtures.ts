@@ -2,7 +2,6 @@ import type { CartItem } from '@/features/cart/model/cartReducer'
 import { CART_STORAGE_KEY } from '@/features/cart/model/cartStorage'
 import type { ProductDto, ProductListDto } from '@/features/catalog/api/dto'
 
-// Produto no formato da DummyJSON; título e imagens derivam do id para facilitar asserções.
 export function makeProductDto(overrides: Partial<ProductDto> = {}): ProductDto {
   const id = overrides.id ?? 1
   return {
@@ -27,7 +26,6 @@ export function makeProductListDto(
   return { products, total, skip: 0, limit: products.length }
 }
 
-// Item do carrinho com título e miniatura derivados do id, como em makeProductDto.
 export function makeCartItem(overrides: Partial<CartItem> = {}): CartItem {
   const productId = overrides.productId ?? 1
   return {
@@ -41,7 +39,6 @@ export function makeCartItem(overrides: Partial<CartItem> = {}): CartItem {
   }
 }
 
-// Grava o carrinho antes de renderizar, como se a pessoa já tivesse adicionado os itens.
 export function seedCart(items: CartItem[]) {
   localStorage.setItem(CART_STORAGE_KEY, JSON.stringify({ items }))
 }

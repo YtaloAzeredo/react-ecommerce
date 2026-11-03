@@ -1,5 +1,3 @@
-// Formato das respostas da DummyJSON, só com os campos que o app usa.
-
 export interface ProductDto {
   id: number
   title: string

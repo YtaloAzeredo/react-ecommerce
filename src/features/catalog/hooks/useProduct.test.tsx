@@ -57,7 +57,6 @@ describe('useProduct', () => {
       }),
     )
 
-    // Cliente real: é a política de novas tentativas do app que está em teste.
     const { result } = renderHook(() => useProduct(99999), {
       wrapper: queryWrapper(createQueryClient()),
     })

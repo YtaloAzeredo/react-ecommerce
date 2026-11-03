@@ -6,7 +6,6 @@ import { server } from '@/test/server'
 
 describe('OrderSuccessPage', () => {
   beforeEach(() => {
-    // Sem confirmação válida a página manda para o catálogo, que busca produtos ao abrir.
     server.use(...catalogHandlers())
   })
 
