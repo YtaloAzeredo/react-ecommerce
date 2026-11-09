@@ -247,7 +247,8 @@ describe('CheckoutPage', () => {
     expect(alert).toHaveTextContent(
       'Pagamento recusado pela operadora do cartão. Tente outro cartão ou outra forma de pagamento.',
     )
-    expect(alert).toHaveFocus()
+    expect(alert).not.toHaveFocus()
+    expect(document.activeElement).toContainElement(alert)
     expect(screen.getByLabelText('Nome completo')).toHaveValue('Ana Souza')
     expect(screen.getByRole('button', { name: 'Finalizar pedido' })).toBeEnabled()
     expect(router.state.location.pathname).toBe('/checkout')

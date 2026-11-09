@@ -128,6 +128,17 @@ describe('CartPage', () => {
     expect(screen.getByRole('heading', { level: 1, name: 'Carrinho' })).toHaveFocus()
   })
 
+  it('esvaziar o carrinho anuncia que ele ficou vazio', async () => {
+    seedCart([makeCartItem({ productId: 1 })])
+    const { user } = renderRoute('/cart')
+    const status = within(screen.getByRole('main')).getByRole('status')
+    expect(status).toBeEmptyDOMElement()
+
+    await user.click(screen.getByRole('button', { name: 'Remover Produto 1' }))
+
+    expect(status).toHaveTextContent('Seu carrinho está vazio.')
+  })
+
   it('carrinho corrompido no storage abre vazio', () => {
     localStorage.setItem(CART_STORAGE_KEY, '{nao é json')
 

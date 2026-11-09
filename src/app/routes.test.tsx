@@ -23,21 +23,26 @@ describe('rotas', () => {
     expect(screen.getByRole('link', { name: 'Voltar para a loja' })).toHaveAttribute('href', '/')
   })
 
-  it('abrir o app não move o foco', async () => {
-    renderRoute('/')
-    await screen.findByRole('heading', { level: 1, name: 'Produtos' })
+  describe.each([
+    { mode: 'sem StrictMode', strictMode: false },
+    { mode: 'com StrictMode', strictMode: true },
+  ])('foco na troca de rota, $mode', ({ strictMode }) => {
+    it('abrir o app não move o foco', async () => {
+      renderRoute('/', { strictMode })
+      await screen.findByRole('heading', { level: 1, name: 'Produtos' })
 
-    expect(screen.getByRole('main')).not.toHaveFocus()
-  })
+      expect(screen.getByRole('main')).not.toHaveFocus()
+    })
 
-  it('trocar de página leva o foco para o conteúdo principal', async () => {
-    seedCart([makeCartItem()])
-    const { user } = renderRoute('/')
-    await screen.findByRole('heading', { level: 1, name: 'Produtos' })
+    it('trocar de página leva o foco para o conteúdo principal', async () => {
+      seedCart([makeCartItem()])
+      const { user } = renderRoute('/', { strictMode })
+      await screen.findByRole('heading', { level: 1, name: 'Produtos' })
 
-    await user.click(screen.getByRole('link', { name: 'Carrinho (1 item)' }))
+      await user.click(screen.getByRole('link', { name: 'Carrinho (1 item)' }))
 
-    expect(await screen.findByRole('heading', { level: 1, name: 'Carrinho' })).toBeInTheDocument()
-    expect(screen.getByRole('main')).toHaveFocus()
+      expect(await screen.findByRole('heading', { level: 1, name: 'Carrinho' })).toBeInTheDocument()
+      expect(screen.getByRole('main')).toHaveFocus()
+    })
   })
 })

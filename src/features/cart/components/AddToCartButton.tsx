@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { Link } from 'react-router'
 import type { Product } from '@/features/catalog/model/types'
 import { useCart } from '../useCart'
@@ -6,6 +6,7 @@ import { useCart } from '../useCart'
 export function AddToCartButton({ product }: { product: Product }) {
   const { items, add } = useCart()
   const [added, setAdded] = useState(false)
+  const limitReasonId = useId()
   const inCart = items.find((item) => item.productId === product.id)?.quantity ?? 0
   const soldOut = product.stock <= 0
   const atLimit = !soldOut && inCart >= product.stock
@@ -16,6 +17,7 @@ export function AddToCartButton({ product }: { product: Product }) {
         type="button"
         disabled={soldOut}
         aria-disabled={atLimit || undefined}
+        aria-describedby={atLimit ? limitReasonId : undefined}
         onClick={() => {
           if (atLimit) return
           add(product)
@@ -26,10 +28,12 @@ export function AddToCartButton({ product }: { product: Product }) {
         {soldOut ? 'Esgotado' : 'Adicionar ao carrinho'}
       </button>
       {atLimit && (
-        <p className="text-sm text-slate-600">Todo o estoque deste produto já está no carrinho.</p>
+        <p id={limitReasonId} className="text-sm text-slate-600">
+          Todo o estoque deste produto já está no carrinho.
+        </p>
       )}
       <p role="status" className="text-sm text-green-700">
-        {added && (
+        {added && inCart > 0 && (
           <>
             Adicionado ao carrinho. Quantidade no carrinho: {inCart}.{' '}
             <Link to="/cart" className="font-medium underline">

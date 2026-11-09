@@ -1,8 +1,9 @@
 import { act, screen, waitFor, within } from '@testing-library/react'
-import { http, HttpResponse } from 'msw'
+import { delay, http, HttpResponse } from 'msw'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { API_URL } from '@/shared/api/http'
 import {
+  catalogCategories,
   catalogHandlers,
   catalogProducts,
   categoryProductsHandler,
@@ -12,8 +13,8 @@ import { makeProductDto, makeProductListDto } from '@/test/fixtures'
 import { createTestQueryClient } from '@/test/queryClient'
 import { renderRoute } from '@/test/renderRoute'
 import { server } from '@/test/server'
-import { toProductPage } from '../api/productAdapter'
-import { productKeys } from '../queries'
+import { toCategory, toProductPage } from '../api/productAdapter'
+import { categoryKeys, productKeys } from '../queries'
 
 const productLink = (id: number) => new RegExp(`^Produto ${id} `)
 
@@ -165,6 +166,22 @@ describe('CatalogPage', () => {
     expect(screen.queryByText('Não foi possível carregar as categorias.')).not.toBeInTheDocument()
   })
 
+  it('erro ao atualizar as categorias já em cache mantém a lista e não avisa', async () => {
+    const queryClient = createTestQueryClient()
+    queryClient.setQueryData(categoryKeys.all, catalogCategories.map(toCategory), {
+      updatedAt: Date.now() - 10 * 60_000,
+    })
+    server.use(
+      http.get(`${API_URL}/products/categories`, () => new HttpResponse(null, { status: 500 })),
+    )
+
+    renderRoute('/', { queryClient })
+
+    await waitFor(() => expect(queryClient.getQueryState(categoryKeys.all)?.status).toBe('error'))
+    expect(screen.getByRole('option', { name: 'Smartphones' })).toBeInTheDocument()
+    expect(screen.queryByText('Não foi possível carregar as categorias.')).not.toBeInTheDocument()
+  })
+
   it('erro ao atualizar uma lista que já está na tela mantém a lista e avisa', async () => {
     const queryClient = createTestQueryClient()
     queryClient.setQueryData(
@@ -205,6 +222,33 @@ describe('CatalogPage', () => {
       expect(screen.queryByText('Não foi possível atualizar a lista.')).not.toBeInTheDocument(),
     )
     expect(screen.getByRole('heading', { level: 1, name: 'Produtos' })).toHaveFocus()
+  })
+
+  it('tentar atualizar a lista de novo avisa que está tentando e volta ao erro se falhar', async () => {
+    const queryClient = createTestQueryClient()
+    queryClient.setQueryData(
+      productKeys.list({ page: 1, category: null }),
+      toProductPage(makeProductListDto(catalogProducts.slice(0, 12), 30), 1, 12),
+      { updatedAt: Date.now() - 10 * 60_000 },
+    )
+    server.use(
+      http.get(`${API_URL}/products`, async () => {
+        await delay(50)
+        return new HttpResponse(null, { status: 500 })
+      }),
+    )
+    const { user } = renderRoute('/', { queryClient })
+    await screen.findByText('Não foi possível atualizar a lista.')
+
+    const retry = screen.getByRole('button', { name: 'Tentar novamente' })
+    await user.click(retry)
+
+    expect(await screen.findByText('Tentando novamente…')).toBeInTheDocument()
+    expect(retry).toHaveAttribute('aria-disabled', 'true')
+    expect(retry).toHaveFocus()
+    expect(await screen.findByText('Não foi possível atualizar a lista.')).toBeInTheDocument()
+    expect(retry).not.toHaveAttribute('aria-disabled')
+    expect(screen.getByRole('link', { name: productLink(1) })).toBeInTheDocument()
   })
 
   it('categoria com página além do fim vai para a última página da categoria', async () => {

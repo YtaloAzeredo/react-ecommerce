@@ -25,7 +25,7 @@ function CheckoutForm({ onOrderPlaced }: { onOrderPlaced: () => void }) {
   const navigate = useNavigate()
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [sending, setSending] = useState(false)
-  const alertRef = useRef<HTMLDivElement>(null)
+  const errorRef = useRef<HTMLDivElement>(null)
   const [defaultValues] = useState(buildDefaultValues)
 
   const form = useForm({
@@ -46,7 +46,7 @@ function CheckoutForm({ onOrderPlaced }: { onOrderPlaced: () => void }) {
   )
 
   useEffect(() => {
-    if (submitError) alertRef.current?.focus()
+    if (submitError) errorRef.current?.focus()
   }, [submitError])
 
   async function onSubmit(values: CheckoutFormValues) {
@@ -89,12 +89,11 @@ function CheckoutForm({ onOrderPlaced }: { onOrderPlaced: () => void }) {
             <OrderSummary items={items} subtotalCents={subtotalCents} totalCents={totalCents} />
             {submitError && (
               <div
-                ref={alertRef}
-                role="alert"
+                ref={errorRef}
                 tabIndex={-1}
                 className="rounded-md border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-800"
               >
-                {submitError}
+                <div role="alert">{submitError}</div>
               </div>
             )}
             <button

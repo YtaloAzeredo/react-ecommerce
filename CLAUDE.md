@@ -25,5 +25,5 @@ Loja virtual de portfólio em React. Detalhes no `README.md`; design e plano em 
 - Dados da API passam pelo Adapter (`features/catalog/api/productAdapter.ts`) antes de chegar aos componentes.
 - Textos de interface em pt-BR; os dados dos produtos chegam em inglês da DummyJSON e não são traduzidos.
 - Testes ficam ao lado do arquivo (`*.test.ts[x]`), importam de `vitest` (sem globals) e mockam a rede com MSW (`src/test/server.ts`); nenhum teste acessa a API real.
-- Para testar uma tela inteira, use `renderRoute(path)` de `src/test/renderRoute.tsx`.
+- Para testar uma tela inteira, use `renderRoute(path)` de `src/test/renderRoute.tsx`; a opção `strictMode: true` envolve o app em `<StrictMode>` como em produção, para testes de efeitos que rodam duas vezes na montagem.
 - As rotas do checkout carregam sob demanda (`lazy` em `src/app/routes.tsx`, na forma de função): num teste que abre `/checkout`, espere a página com `findBy…` antes de interagir.

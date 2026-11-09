@@ -39,7 +39,7 @@ export function CatalogPage() {
         />
       </div>
 
-      {categories.isError && (
+      {categories.isError && !categories.data && (
         <p role="alert" className="flex flex-wrap items-center gap-2 text-sm text-red-700">
           Não foi possível carregar as categorias.
           <button
@@ -60,11 +60,15 @@ export function CatalogPage() {
           role="alert"
           className="flex flex-wrap items-center justify-between gap-4 rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900"
         >
-          <p>Não foi possível atualizar a lista.</p>
+          <p>
+            {products.isFetching ? 'Tentando novamente…' : 'Não foi possível atualizar a lista.'}
+          </p>
           <button
             type="button"
-            className={buttonClass}
+            className={`${buttonClass} aria-disabled:cursor-not-allowed aria-disabled:opacity-60`}
+            aria-disabled={products.isFetching || undefined}
             onClick={() => {
+              if (products.isFetching) return
               void products.refetch().then((result) => {
                 if (!result.isError) headingRef.current?.focus()
               })
