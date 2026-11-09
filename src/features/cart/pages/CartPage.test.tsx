@@ -2,6 +2,7 @@ import { screen, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { makeCartItem, seedCart } from '@/test/fixtures'
 import { renderRoute } from '@/test/renderRoute'
+import { CART_STORAGE_KEY } from '../model/cartStorage'
 
 function summary() {
   return within(screen.getByRole('region', { name: 'Resumo' }))
@@ -40,20 +41,38 @@ describe('CartPage', () => {
     expect(summary().getByText('US$ 9,99')).toBeInTheDocument()
   })
 
-  it('diminuir fica desabilitado em 1', () => {
-    seedCart([makeCartItem({ productId: 1, quantity: 1 })])
+  it('diminuir em 1 fica indisponível sem perder o foco', async () => {
+    seedCart([makeCartItem({ productId: 1, priceCents: 999, quantity: 2 })])
+    const { user } = renderRoute('/cart')
+    const decrease = screen.getByRole('button', { name: 'Diminuir quantidade de Produto 1' })
 
-    renderRoute('/cart')
+    await user.click(decrease)
+    await user.click(decrease)
 
-    expect(screen.getByRole('button', { name: 'Diminuir quantidade de Produto 1' })).toBeDisabled()
+    expect(decrease).toHaveAttribute('aria-disabled', 'true')
+    expect(decrease).toHaveFocus()
+    expect(summary().getByText('US$ 9,99')).toBeInTheDocument()
   })
 
-  it('aumentar fica desabilitado no limite do estoque', () => {
-    seedCart([makeCartItem({ productId: 1, maxQuantity: 3, quantity: 3 })])
+  it('aumentar no limite do estoque fica indisponível sem perder o foco', async () => {
+    seedCart([makeCartItem({ productId: 1, priceCents: 999, maxQuantity: 2, quantity: 1 })])
+    const { user } = renderRoute('/cart')
+    const increase = screen.getByRole('button', { name: 'Aumentar quantidade de Produto 1' })
+
+    await user.click(increase)
+    await user.click(increase)
+
+    expect(increase).toHaveAttribute('aria-disabled', 'true')
+    expect(increase).toHaveFocus()
+    expect(summary().getByText('US$ 19,98')).toBeInTheDocument()
+  })
+
+  it('o subtotal fica numa região que anuncia as mudanças', () => {
+    seedCart([makeCartItem()])
 
     renderRoute('/cart')
 
-    expect(screen.getByRole('button', { name: 'Aumentar quantidade de Produto 1' })).toBeDisabled()
+    expect(summary().getByText('Subtotal').closest('[aria-live="polite"]')).not.toBeNull()
   })
 
   it('digitar a quantidade atualiza o subtotal', async () => {
@@ -95,6 +114,24 @@ describe('CartPage', () => {
     const { user } = renderRoute('/cart')
 
     await user.click(screen.getByRole('button', { name: 'Remover Produto 1' }))
+
+    expect(screen.getByText('Seu carrinho está vazio.')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Carrinho (0 itens)' })).toBeInTheDocument()
+  })
+
+  it('remover leva o foco para o título do carrinho', async () => {
+    seedCart([makeCartItem({ productId: 1 }), makeCartItem({ productId: 2 })])
+    const { user } = renderRoute('/cart')
+
+    await user.click(screen.getByRole('button', { name: 'Remover Produto 1' }))
+
+    expect(screen.getByRole('heading', { level: 1, name: 'Carrinho' })).toHaveFocus()
+  })
+
+  it('carrinho corrompido no storage abre vazio', () => {
+    localStorage.setItem(CART_STORAGE_KEY, '{nao é json')
+
+    renderRoute('/cart')
 
     expect(screen.getByText('Seu carrinho está vazio.')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Carrinho (0 itens)' })).toBeInTheDocument()

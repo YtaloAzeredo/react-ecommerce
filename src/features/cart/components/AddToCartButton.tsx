@@ -14,12 +14,14 @@ export function AddToCartButton({ product }: { product: Product }) {
     <div className="flex flex-col gap-2">
       <button
         type="button"
-        disabled={soldOut || atLimit}
+        disabled={soldOut}
+        aria-disabled={atLimit || undefined}
         onClick={() => {
+          if (atLimit) return
           add(product)
           setAdded(true)
         }}
-        className="self-start rounded-md bg-slate-900 px-5 py-2.5 font-medium text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600"
+        className="self-start rounded-md bg-slate-900 px-5 py-2.5 font-medium text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600 aria-disabled:cursor-not-allowed aria-disabled:bg-slate-300 aria-disabled:text-slate-600"
       >
         {soldOut ? 'Esgotado' : 'Adicionar ao carrinho'}
       </button>
@@ -29,7 +31,7 @@ export function AddToCartButton({ product }: { product: Product }) {
       <p role="status" className="text-sm text-green-700">
         {added && (
           <>
-            Adicionado ao carrinho.{' '}
+            Adicionado ao carrinho. Quantidade no carrinho: {inCart}.{' '}
             <Link to="/cart" className="font-medium underline">
               Ver carrinho
             </Link>

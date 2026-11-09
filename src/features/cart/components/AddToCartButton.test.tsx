@@ -20,12 +20,17 @@ describe('AddToCartButton', () => {
     await user.click(screen.getByRole('button', { name: 'Adicionar ao carrinho' }))
 
     expect(screen.getByRole('link', { name: 'Carrinho (1 item)' })).toBeInTheDocument()
-    expect(screen.getByText('Adicionado ao carrinho.')).toBeInTheDocument()
+    expect(
+      screen.getByText('Adicionado ao carrinho. Quantidade no carrinho: 1.'),
+    ).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Ver carrinho' })).toHaveAttribute('href', '/cart')
 
     await user.click(screen.getByRole('button', { name: 'Adicionar ao carrinho' }))
 
     expect(screen.getByRole('link', { name: 'Carrinho (2 itens)' })).toBeInTheDocument()
+    expect(
+      screen.getByText('Adicionado ao carrinho. Quantidade no carrinho: 2.'),
+    ).toBeInTheDocument()
   })
 
   it('produto esgotado desabilita o botão', async () => {
@@ -34,12 +39,16 @@ describe('AddToCartButton', () => {
     expect(screen.getByRole('button', { name: 'Esgotado' })).toBeDisabled()
   })
 
-  it('limite de estoque desabilita o botão', async () => {
+  it('limite de estoque deixa o botão indisponível sem perder o foco', async () => {
     const { user } = await openProduct(1)
+    const button = screen.getByRole('button', { name: 'Adicionar ao carrinho' })
 
-    await user.click(screen.getByRole('button', { name: 'Adicionar ao carrinho' }))
+    await user.click(button)
+    await user.click(button)
 
-    expect(screen.getByRole('button', { name: 'Adicionar ao carrinho' })).toBeDisabled()
+    expect(button).toHaveAttribute('aria-disabled', 'true')
+    expect(button).toHaveFocus()
+    expect(screen.getByRole('link', { name: 'Carrinho (1 item)' })).toBeInTheDocument()
     expect(
       screen.getByText('Todo o estoque deste produto já está no carrinho.'),
     ).toBeInTheDocument()

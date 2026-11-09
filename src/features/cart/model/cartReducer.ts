@@ -24,7 +24,7 @@ export function cartReducer(state: CartState, action: CartAction): CartState {
   switch (action.type) {
     case 'add': {
       const adding = Math.floor(action.quantity ?? 1)
-      if (adding < 1) return state
+      if (!Number.isFinite(adding) || adding < 1) return state
       const existing = state.items.find((item) => item.productId === action.item.productId)
       const quantity = Math.min((existing?.quantity ?? 0) + adding, action.item.maxQuantity)
       if (quantity <= 0) return state
@@ -35,6 +35,7 @@ export function cartReducer(state: CartState, action: CartAction): CartState {
     }
     case 'setQuantity': {
       const quantity = Math.floor(action.quantity)
+      if (!Number.isFinite(quantity)) return state
       if (quantity <= 0) return cartReducer(state, { type: 'remove', productId: action.productId })
       return {
         items: state.items.map((item) =>

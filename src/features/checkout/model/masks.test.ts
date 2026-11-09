@@ -43,4 +43,9 @@ describe('máscaras', () => {
     expect(formatExpiry('1')).toBe('1')
     expect(formatExpiry('12/289')).toBe('12/28')
   })
+
+  it('formatExpiry converte o ano com 4 dígitos de uma colagem', () => {
+    expect(formatExpiry('12/2028')).toBe('12/28')
+    expect(formatExpiry('122028')).toBe('12/28')
+  })
 })

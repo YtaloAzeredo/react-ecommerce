@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react'
-import { MemoryRouter } from 'react-router'
+import userEvent from '@testing-library/user-event'
+import { createMemoryRouter, MemoryRouter, RouterProvider } from 'react-router'
 import { describe, expect, it, vi } from 'vitest'
 import { Pagination } from './Pagination'
 
@@ -31,18 +32,40 @@ describe('Pagination', () => {
     expect(screen.getByRole('link', { name: 'Próxima' })).toHaveAttribute('href', '/?page=4')
   })
 
-  it('Anterior fica desabilitado na primeira página', () => {
+  it('Anterior fica indisponível na primeira página', () => {
     renderPagination(1, 5)
 
-    expect(screen.queryByRole('link', { name: 'Anterior' })).not.toBeInTheDocument()
-    expect(screen.getByText('Anterior')).toHaveAttribute('aria-disabled', 'true')
+    expect(screen.getByRole('link', { name: 'Anterior' })).toHaveAttribute('aria-disabled', 'true')
+    expect(screen.getByRole('link', { name: 'Próxima' })).not.toHaveAttribute('aria-disabled')
   })
 
-  it('Próxima fica desabilitado na última página', () => {
+  it('Próxima fica indisponível na última página', () => {
     renderPagination(5, 5)
 
-    expect(screen.queryByRole('link', { name: 'Próxima' })).not.toBeInTheDocument()
-    expect(screen.getByText('Próxima')).toHaveAttribute('aria-disabled', 'true')
+    expect(screen.getByRole('link', { name: 'Próxima' })).toHaveAttribute('aria-disabled', 'true')
+    expect(screen.getByRole('link', { name: 'Anterior' })).not.toHaveAttribute('aria-disabled')
+  })
+
+  it('clicar num passo indisponível não navega', async () => {
+    const router = createMemoryRouter(
+      [
+        {
+          path: '/',
+          element: (
+            <Pagination page={5} totalPages={5} getHref={(target) => `/?page=${target}`}>
+              <Pagination.Next />
+            </Pagination>
+          ),
+        },
+      ],
+      { initialEntries: ['/?page=5'] },
+    )
+    render(<RouterProvider router={router} />)
+
+    await userEvent.setup().click(screen.getByRole('link', { name: 'Próxima' }))
+
+    expect(router.state.historyAction).toBe('POP')
+    expect(router.state.location.search).toBe('?page=5')
   })
 
   it('esconde as reticências de leitores de tela', () => {

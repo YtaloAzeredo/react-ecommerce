@@ -4,12 +4,16 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { API_URL } from '@/shared/api/http'
 import {
   catalogHandlers,
+  catalogProducts,
   categoryProductsHandler,
   productListHandler,
 } from '@/test/catalogHandlers'
-import { makeProductDto } from '@/test/fixtures'
+import { makeProductDto, makeProductListDto } from '@/test/fixtures'
+import { createTestQueryClient } from '@/test/queryClient'
 import { renderRoute } from '@/test/renderRoute'
 import { server } from '@/test/server'
+import { toProductPage } from '../api/productAdapter'
+import { productKeys } from '../queries'
 
 const productLink = (id: number) => new RegExp(`^Produto ${id} `)
 
@@ -115,6 +119,112 @@ describe('CatalogPage', () => {
 
     expect(await screen.findByRole('link', { name: productLink(99) })).toHaveTextContent(
       'US$ 1.099,99',
+    )
+  })
+
+  it('chegar à última página mantém o foco no link Próxima', async () => {
+    const { user } = renderRoute('/?page=2')
+    await screen.findByRole('link', { name: productLink(13) })
+
+    await user.click(screen.getByRole('link', { name: 'Próxima' }))
+    await screen.findByRole('link', { name: productLink(25) })
+
+    const next = screen.getByRole('link', { name: 'Próxima' })
+    expect(next).toHaveAttribute('aria-disabled', 'true')
+    expect(next).toHaveFocus()
+  })
+
+  it('categoria fora da lista aparece selecionada e "Todas" volta para todos os produtos', async () => {
+    const { router, user } = renderRoute('/?category=nao-existe')
+    await screen.findByText('Nenhum produto encontrado.')
+    await screen.findByRole('option', { name: 'Smartphones' })
+    const select = screen.getByRole('combobox', { name: 'Categoria' })
+
+    expect(select).toHaveValue('nao-existe')
+
+    await user.selectOptions(select, 'Todas')
+
+    expect(router.state.location.search).toBe('')
+  })
+
+  it('erro ao carregar as categorias avisa e permite tentar de novo', async () => {
+    server.use(
+      http.get(`${API_URL}/products/categories`, () => new HttpResponse(null, { status: 500 }), {
+        once: true,
+      }),
+    )
+    const { user } = renderRoute('/')
+
+    expect(await screen.findByText('Não foi possível carregar as categorias.')).toBeInTheDocument()
+    expect(await screen.findByRole('link', { name: productLink(1) })).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Recarregar categorias' }))
+
+    expect(screen.getByRole('combobox', { name: 'Categoria' })).toHaveFocus()
+    expect(await screen.findByRole('option', { name: 'Smartphones' })).toBeInTheDocument()
+    expect(screen.queryByText('Não foi possível carregar as categorias.')).not.toBeInTheDocument()
+  })
+
+  it('erro ao atualizar uma lista que já está na tela mantém a lista e avisa', async () => {
+    const queryClient = createTestQueryClient()
+    queryClient.setQueryData(
+      productKeys.list({ page: 1, category: null }),
+      toProductPage(makeProductListDto(catalogProducts.slice(0, 12), 30), 1, 12),
+      { updatedAt: Date.now() - 10 * 60_000 },
+    )
+    server.use(http.get(`${API_URL}/products`, () => new HttpResponse(null, { status: 500 })))
+
+    renderRoute('/', { queryClient })
+
+    expect(await screen.findByText('Não foi possível atualizar a lista.')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: productLink(1) })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Tentar novamente' })).toBeInTheDocument()
+  })
+
+  it('atualizar a lista de novo com sucesso leva o foco para o título', async () => {
+    const queryClient = createTestQueryClient()
+    queryClient.setQueryData(
+      productKeys.list({ page: 1, category: null }),
+      toProductPage(makeProductListDto(catalogProducts.slice(0, 12), 30), 1, 12),
+      { updatedAt: Date.now() - 10 * 60_000 },
+    )
+    let failed = false
+    server.use(
+      http.get(`${API_URL}/products`, ({ request }) => {
+        if (failed || new URL(request.url).searchParams.get('skip') !== '0') return undefined
+        failed = true
+        return new HttpResponse(null, { status: 500 })
+      }),
+    )
+    const { user } = renderRoute('/', { queryClient })
+    await screen.findByText('Não foi possível atualizar a lista.')
+
+    await user.click(screen.getByRole('button', { name: 'Tentar novamente' }))
+
+    await waitFor(() =>
+      expect(screen.queryByText('Não foi possível atualizar a lista.')).not.toBeInTheDocument(),
+    )
+    expect(screen.getByRole('heading', { level: 1, name: 'Produtos' })).toHaveFocus()
+  })
+
+  it('categoria com página além do fim vai para a última página da categoria', async () => {
+    const { router } = renderRoute('/?category=beauty&page=9')
+
+    await waitFor(() => expect(router.state.location.search).toBe('?category=beauty&page=2'))
+    expect(router.state.historyAction).toBe('REPLACE')
+  })
+
+  it('os links da paginação mantêm a categoria', async () => {
+    renderRoute('/?category=beauty')
+    await screen.findByRole('link', { name: productLink(1) })
+
+    expect(screen.getByRole('link', { name: 'Página 2' })).toHaveAttribute(
+      'href',
+      '/?category=beauty&page=2',
+    )
+    expect(screen.getByRole('link', { name: 'Próxima' })).toHaveAttribute(
+      'href',
+      '/?category=beauty&page=2',
     )
   })
 

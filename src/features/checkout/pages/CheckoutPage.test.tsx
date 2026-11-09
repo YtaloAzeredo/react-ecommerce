@@ -1,7 +1,7 @@
-import { screen, waitFor, within } from '@testing-library/react'
+import { act, screen, waitFor, within } from '@testing-library/react'
 import type { UserEvent } from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { loadCart } from '@/features/cart/model/cartStorage'
+import { CART_STORAGE_KEY, loadCart } from '@/features/cart/model/cartStorage'
 import { makeCartItem, seedCart } from '@/test/fixtures'
 import { renderRoute } from '@/test/renderRoute'
 import { PaymentDeclinedError, submitOrder } from '../api/orderService'
@@ -88,6 +88,34 @@ describe('CheckoutPage', () => {
     expect(fullName).toHaveAttribute('aria-invalid', 'true')
     expect(fullName).toHaveAccessibleDescription('Informe nome e sobrenome')
     expect(submitOrder).not.toHaveBeenCalled()
+  })
+
+  it('enviar com erro não trava o formulário nem anuncia o envio', async () => {
+    const { user } = await openCheckout()
+    const sightings: string[] = []
+    const observer = new MutationObserver((records) => {
+      for (const record of records) {
+        if (record.type === 'attributes' && (record.target as Element).hasAttribute('disabled')) {
+          sightings.push(`disabled em <${(record.target as Element).tagName.toLowerCase()}>`)
+        }
+        for (const node of record.addedNodes) {
+          if (node.textContent?.includes('Enviando pedido…')) sightings.push('Enviando pedido…')
+        }
+      }
+    })
+    observer.observe(document.body, {
+      subtree: true,
+      childList: true,
+      attributes: true,
+      attributeFilter: ['disabled'],
+    })
+
+    await user.click(screen.getByRole('button', { name: 'Finalizar pedido' }))
+    await screen.findByText('Informe nome e sobrenome')
+    observer.disconnect()
+
+    expect(sightings.filter((sighting) => !sighting.includes('<button>'))).toEqual([])
+    expect(screen.getByLabelText('Nome completo')).toHaveFocus()
   })
 
   it('CPF recebe máscara', async () => {
@@ -182,6 +210,31 @@ describe('CheckoutPage', () => {
     expect(submitOrder).toHaveBeenCalledTimes(1)
   })
 
+  it('enquanto envia, o formulário fica travado e o envio é anunciado', async () => {
+    vi.mocked(submitOrder).mockReturnValue(new Promise(() => {}))
+    const { user } = await openCheckout()
+    await fillCustomerAndAddress(user)
+    await user.click(screen.getByRole('radio', { name: 'Pix' }))
+
+    await user.click(screen.getByRole('button', { name: 'Finalizar pedido' }))
+
+    expect(await screen.findByText('Enviando pedido…')).toBeInTheDocument()
+    expect(screen.getByLabelText('Nome completo')).toBeDisabled()
+    expect(screen.getByRole('radio', { name: 'Boleto' })).toBeDisabled()
+  })
+
+  it('carrinho esvaziado em outra aba leva para /cart', async () => {
+    const { router } = await openCheckout()
+
+    act(() => {
+      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify({ items: [] }))
+      window.dispatchEvent(new StorageEvent('storage', { key: CART_STORAGE_KEY }))
+    })
+
+    expect(await screen.findByText('Seu carrinho está vazio.')).toBeInTheDocument()
+    expect(router.state.location.pathname).toBe('/cart')
+  })
+
   it('cartão recusado mostra o erro e mantém o formulário', async () => {
     vi.mocked(submitOrder).mockRejectedValue(new PaymentDeclinedError())
     const { user, router } = await openCheckout()
@@ -190,9 +243,11 @@ describe('CheckoutPage', () => {
 
     await user.click(screen.getByRole('button', { name: 'Finalizar pedido' }))
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(
+    const alert = await screen.findByRole('alert')
+    expect(alert).toHaveTextContent(
       'Pagamento recusado pela operadora do cartão. Tente outro cartão ou outra forma de pagamento.',
     )
+    expect(alert).toHaveFocus()
     expect(screen.getByLabelText('Nome completo')).toHaveValue('Ana Souza')
     expect(screen.getByRole('button', { name: 'Finalizar pedido' })).toBeEnabled()
     expect(router.state.location.pathname).toBe('/checkout')

@@ -34,16 +34,14 @@ export function Pagination({
 
 const stepClass = 'rounded-md border px-3 py-2 text-sm font-medium'
 
-function Step({ label, href }: { label: string; href: string | null }) {
-  if (!href) {
-    return (
-      <span aria-disabled="true" className={`${stepClass} border-slate-200 text-slate-400`}>
-        {label}
-      </span>
-    )
-  }
+function Step({ label, href, disabled }: { label: string; href: string; disabled: boolean }) {
   return (
-    <Link to={href} className={`${stepClass} border-slate-300 bg-white hover:bg-slate-100`}>
+    <Link
+      to={href}
+      aria-disabled={disabled || undefined}
+      onClick={disabled ? (event) => event.preventDefault() : undefined}
+      className={`${stepClass} ${disabled ? 'cursor-default border-slate-200 text-slate-400' : 'border-slate-300 bg-white hover:bg-slate-100'}`}
+    >
       {label}
     </Link>
   )
@@ -51,12 +49,18 @@ function Step({ label, href }: { label: string; href: string | null }) {
 
 function PaginationPrevious() {
   const { page, getHref } = usePaginationContext()
-  return <Step label="Anterior" href={page > 1 ? getHref(page - 1) : null} />
+  return <Step label="Anterior" href={getHref(Math.max(1, page - 1))} disabled={page <= 1} />
 }
 
 function PaginationNext() {
   const { page, totalPages, getHref } = usePaginationContext()
-  return <Step label="Próxima" href={page < totalPages ? getHref(page + 1) : null} />
+  return (
+    <Step
+      label="Próxima"
+      href={getHref(Math.min(totalPages, page + 1))}
+      disabled={page >= totalPages}
+    />
+  )
 }
 
 function PaginationItems() {

@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { FormProvider, useForm, useWatch } from 'react-hook-form'
 import { Navigate, useNavigate } from 'react-router'
 import { useCart } from '@/features/cart/useCart'
@@ -24,6 +24,8 @@ function CheckoutForm({ onOrderPlaced }: { onOrderPlaced: () => void }) {
   const { items, subtotalCents, clear } = useCart()
   const navigate = useNavigate()
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [sending, setSending] = useState(false)
+  const alertRef = useRef<HTMLDivElement>(null)
   const [defaultValues] = useState(buildDefaultValues)
 
   const form = useForm({
@@ -43,8 +45,13 @@ function CheckoutForm({ onOrderPlaced }: { onOrderPlaced: () => void }) {
     [form],
   )
 
+  useEffect(() => {
+    if (submitError) alertRef.current?.focus()
+  }, [submitError])
+
   async function onSubmit(values: CheckoutFormValues) {
     setSubmitError(null)
+    setSending(true)
     try {
       const confirmation = await submitOrder({ ...values, items, totalCents })
       onOrderPlaced()
@@ -57,6 +64,8 @@ function CheckoutForm({ onOrderPlaced }: { onOrderPlaced: () => void }) {
           ? `${error.message} Tente outro cartão ou outra forma de pagamento.`
           : 'Não foi possível finalizar o pedido. Tente novamente.',
       )
+    } finally {
+      setSending(false)
     }
   }
 
@@ -71,16 +80,18 @@ function CheckoutForm({ onOrderPlaced }: { onOrderPlaced: () => void }) {
           onSubmit={form.handleSubmit(onSubmit)}
           className="grid items-start gap-8 lg:grid-cols-[1fr_22rem]"
         >
-          <div className="flex flex-col gap-8">
+          <fieldset disabled={sending} className="flex min-w-0 flex-col gap-8">
             <CustomerFields />
             <AddressFields />
             <PaymentSection subtotalCents={subtotalCents} />
-          </div>
+          </fieldset>
           <div className="flex flex-col gap-4 lg:sticky lg:top-4">
             <OrderSummary items={items} subtotalCents={subtotalCents} totalCents={totalCents} />
             {submitError && (
               <div
+                ref={alertRef}
                 role="alert"
+                tabIndex={-1}
                 className="rounded-md border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-800"
               >
                 {submitError}
@@ -91,8 +102,11 @@ function CheckoutForm({ onOrderPlaced }: { onOrderPlaced: () => void }) {
               disabled={isSubmitting}
               className="rounded-md bg-slate-900 px-4 py-3 font-medium text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-400"
             >
-              {isSubmitting ? 'Enviando…' : 'Finalizar pedido'}
+              {sending ? 'Enviando…' : 'Finalizar pedido'}
             </button>
+            <p role="status" className="sr-only">
+              {sending ? 'Enviando pedido…' : ''}
+            </p>
           </div>
         </form>
       </FormProvider>

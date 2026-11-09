@@ -129,6 +129,7 @@ O app é publicado na [Vercel](https://vercel.com), conectada ao repositório do
   - um pagamento recusado mostra o erro sem perder o que foi digitado;
   - dados pessoais e endereço ficam salvos como rascunho na aba (`sessionStorage`); dados de pagamento nunca são salvos.
 - **Confirmação:** mostra o número do pedido, o total e a forma de pagamento.
+- **Acessibilidade:** o foco do teclado é tratado nas ações principais. Ao trocar de página ele vai para o conteúdo, botões que ficam indisponíveis continuam com o foco, e depois de remover um item ou tentar carregar de novo ele vai para um lugar previsível. Leitores de tela são avisados das mudanças principais: subtotal, item adicionado, envio do pedido e erros.
 - **Carregamento sob demanda:** o código do checkout (formulário, validação e formas de pagamento) só é baixado quando a pessoa vai finalizar a compra. Enquanto ele chega, uma barra no topo mostra que a página está carregando.
 
 ## Para testar

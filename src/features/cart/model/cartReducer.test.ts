@@ -76,6 +76,16 @@ describe('cartReducer', () => {
     )
   })
 
+  it('quantidade que não é um número finito devolve o mesmo estado', () => {
+    const item = makeCartItem({ productId: 1, quantity: 2 })
+    const state = { items: [item] }
+
+    for (const quantity of [Number.NaN, Number.POSITIVE_INFINITY]) {
+      expect(cartReducer(state, { type: 'add', item: withoutQuantity(item), quantity })).toBe(state)
+      expect(cartReducer(state, { type: 'setQuantity', productId: 1, quantity })).toBe(state)
+    }
+  })
+
   it('add de produto existente atualiza preço e estoque', () => {
     const state = { items: [makeCartItem({ priceCents: 999, maxQuantity: 10, quantity: 1 })] }
 

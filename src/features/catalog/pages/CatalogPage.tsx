@@ -1,3 +1,4 @@
+import { useRef } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router'
 import { Pagination } from '@/shared/ui/Pagination'
 import { StatusMessage } from '@/shared/ui/StatusMessage'
@@ -14,6 +15,8 @@ export function CatalogPage() {
   const navigate = useNavigate()
   const products = useProducts({ page, category })
   const categories = useCategories()
+  const headingRef = useRef<HTMLHeadingElement>(null)
+  const categorySelectRef = useRef<HTMLSelectElement>(null)
 
   const categoryName = categories.data?.find((item) => item.slug === category)?.name
   const title = category ? (categoryName ?? category) : 'Produtos'
@@ -25,17 +28,56 @@ export function CatalogPage() {
   return (
     <section className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold">{title}</h1>
+        <h1 ref={headingRef} tabIndex={-1} className="text-2xl font-bold focus:outline-none">
+          {title}
+        </h1>
         <CategoryFilter
+          ref={categorySelectRef}
           categories={categories.data ?? []}
           value={category}
           onChange={(slug) => navigate(hrefFor({ category: slug }))}
         />
       </div>
 
+      {categories.isError && (
+        <p role="alert" className="flex flex-wrap items-center gap-2 text-sm text-red-700">
+          Não foi possível carregar as categorias.
+          <button
+            type="button"
+            onClick={() => {
+              categorySelectRef.current?.focus()
+              void categories.refetch()
+            }}
+            className="font-medium underline"
+          >
+            Recarregar categorias
+          </button>
+        </p>
+      )}
+
+      {products.isError && products.data && (
+        <div
+          role="alert"
+          className="flex flex-wrap items-center justify-between gap-4 rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+        >
+          <p>Não foi possível atualizar a lista.</p>
+          <button
+            type="button"
+            className={buttonClass}
+            onClick={() => {
+              void products.refetch().then((result) => {
+                if (!result.isError) headingRef.current?.focus()
+              })
+            }}
+          >
+            Tentar novamente
+          </button>
+        </div>
+      )}
+
       {products.isPending ? (
         <StatusMessage>Carregando produtos…</StatusMessage>
-      ) : products.isError ? (
+      ) : !products.data ? (
         <StatusMessage
           tone="error"
           action={

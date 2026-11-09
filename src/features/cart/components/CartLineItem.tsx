@@ -5,9 +5,9 @@ import type { CartItem } from '../model/cartReducer'
 import { useCart } from '../useCart'
 
 const stepButtonClass =
-  'size-9 rounded-md border border-slate-300 bg-white text-lg leading-none hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40'
+  'size-9 rounded-md border border-slate-300 bg-white text-lg leading-none hover:bg-slate-100 aria-disabled:cursor-not-allowed aria-disabled:opacity-40'
 
-export function CartLineItem({ item }: { item: CartItem }) {
+export function CartLineItem({ item, onRemove }: { item: CartItem; onRemove: () => void }) {
   const { setQuantity, remove } = useCart()
   const { productId, title, priceCents, thumbnailUrl, maxQuantity, quantity } = item
   const [draft, setDraft] = useState<string | null>(null)
@@ -31,8 +31,10 @@ export function CartLineItem({ item }: { item: CartItem }) {
           <button
             type="button"
             aria-label={`Diminuir quantidade de ${title}`}
-            disabled={quantity <= 1}
-            onClick={() => setQuantity(productId, quantity - 1)}
+            aria-disabled={quantity <= 1 || undefined}
+            onClick={() => {
+              if (quantity > 1) setQuantity(productId, quantity - 1)
+            }}
             className={stepButtonClass}
           >
             −
@@ -60,8 +62,10 @@ export function CartLineItem({ item }: { item: CartItem }) {
           <button
             type="button"
             aria-label={`Aumentar quantidade de ${title}`}
-            disabled={quantity >= maxQuantity}
-            onClick={() => setQuantity(productId, quantity + 1)}
+            aria-disabled={quantity >= maxQuantity || undefined}
+            onClick={() => {
+              if (quantity < maxQuantity) setQuantity(productId, quantity + 1)
+            }}
             className={stepButtonClass}
           >
             +
@@ -69,7 +73,10 @@ export function CartLineItem({ item }: { item: CartItem }) {
           <button
             type="button"
             aria-label={`Remover ${title}`}
-            onClick={() => remove(productId)}
+            onClick={() => {
+              remove(productId)
+              onRemove()
+            }}
             className="ml-auto text-sm font-medium text-red-700 hover:underline"
           >
             Remover

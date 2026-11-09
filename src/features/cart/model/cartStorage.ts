@@ -20,11 +20,14 @@ export function loadCart(storage?: Storage): CartState {
     if (raw === null) return emptyCart
     const stored = storedCartSchema.safeParse(JSON.parse(raw))
     if (!stored.success) return emptyCart
+    const seen = new Set<number>()
     const items = stored.data.items.flatMap((value): CartItem[] => {
       const item = cartItemSchema.safeParse(value)
-      if (!item.success) return []
+      if (!item.success || seen.has(item.data.productId)) return []
       const quantity = Math.min(item.data.quantity, item.data.maxQuantity)
-      return quantity > 0 ? [{ ...item.data, quantity }] : []
+      if (quantity <= 0) return []
+      seen.add(item.data.productId)
+      return [{ ...item.data, quantity }]
     })
     return { items }
   } catch {

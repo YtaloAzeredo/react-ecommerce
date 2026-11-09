@@ -1,8 +1,18 @@
-import { Link, Outlet, ScrollRestoration, useNavigation } from 'react-router'
+import { useEffect, useRef } from 'react'
+import { Link, Outlet, ScrollRestoration, useLocation, useNavigation } from 'react-router'
 import { CartLink } from '@/features/cart/components/CartLink'
 
 export function RootLayout() {
   const loading = useNavigation().state === 'loading'
+  const { pathname } = useLocation()
+  const mainRef = useRef<HTMLElement>(null)
+  const previousPathname = useRef(pathname)
+
+  useEffect(() => {
+    if (previousPathname.current === pathname) return
+    previousPathname.current = pathname
+    mainRef.current?.focus({ preventScroll: true })
+  }, [pathname])
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
@@ -21,7 +31,7 @@ export function RootLayout() {
           <CartLink />
         </div>
       </header>
-      <main className="mx-auto max-w-6xl px-4 py-8">
+      <main ref={mainRef} tabIndex={-1} className="mx-auto max-w-6xl px-4 py-8 focus:outline-none">
         <Outlet />
       </main>
       <ScrollRestoration />

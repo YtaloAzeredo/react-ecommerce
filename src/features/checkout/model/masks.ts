@@ -36,5 +36,6 @@ export function formatCardNumber(value: string): string {
 }
 
 export function formatExpiry(value: string): string {
-  return applyPattern(value, '##/##')
+  const digits = onlyDigits(value)
+  return applyPattern(digits.length === 6 ? digits.slice(0, 2) + digits.slice(4) : digits, '##/##')
 }

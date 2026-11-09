@@ -63,6 +63,26 @@ describe('cartStorage', () => {
     expect(loadCart()).toEqual({ items: [valid] })
   })
 
+  it('produto repetido fica só na primeira ocorrência', () => {
+    const first = makeCartItem({ productId: 1, quantity: 2 })
+    localStorage.setItem(
+      CART_STORAGE_KEY,
+      JSON.stringify({ items: [first, makeCartItem({ productId: 1, quantity: 3 })] }),
+    )
+
+    expect(loadCart()).toEqual({ items: [first] })
+  })
+
+  it('repetido depois de uma ocorrência descartada continua valendo', () => {
+    const valid = makeCartItem({ productId: 1, quantity: 3 })
+    localStorage.setItem(
+      CART_STORAGE_KEY,
+      JSON.stringify({ items: [makeCartItem({ productId: 1, quantity: 0 }), valid] }),
+    )
+
+    expect(loadCart()).toEqual({ items: [valid] })
+  })
+
   it('quantidade salva acima do estoque é limitada ao estoque', () => {
     localStorage.setItem(
       CART_STORAGE_KEY,
