@@ -35,15 +35,15 @@ function ProductDetail({ id }: { id: number }) {
   const queryClient = useQueryClient()
   const product = useProduct(id)
   const [retrying, setRetrying] = useState(false)
-  const [focusTitleWhenLoaded, setFocusTitleWhenLoaded] = useState(false)
+  const focusTitleWhenLoaded = useRef(false)
   const headingRef = useRef<HTMLHeadingElement>(null)
   const loaded = product.isSuccess && !product.isPlaceholderData
 
   useEffect(() => {
-    if (!focusTitleWhenLoaded || !loaded) return
-    setFocusTitleWhenLoaded(false)
+    if (!focusTitleWhenLoaded.current || !loaded) return
+    focusTitleWhenLoaded.current = false
     headingRef.current?.focus()
-  }, [focusTitleWhenLoaded, loaded])
+  }, [loaded])
 
   if (product.isSuccess && !(product.isPlaceholderData && retrying)) {
     return <ProductInfo product={product.data} headingRef={headingRef} />
@@ -59,10 +59,10 @@ function ProductDetail({ id }: { id: number }) {
       onClick={() => {
         if (retrying) return
         setRetrying(true)
-        setFocusTitleWhenLoaded(true)
+        focusTitleWhenLoaded.current = true
         void product.refetch().then((result) => {
           setRetrying(false)
-          if (result.isError) setFocusTitleWhenLoaded(false)
+          if (result.isError) focusTitleWhenLoaded.current = false
         })
       }}
     >

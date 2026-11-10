@@ -1,4 +1,4 @@
-import { screen, within } from '@testing-library/react'
+import { act, screen, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { makeCartItem, seedCart } from '@/test/fixtures'
 import { renderRoute } from '@/test/renderRoute'
@@ -119,9 +119,9 @@ describe('CartPage', () => {
     await user.clear(input)
     await user.type(input, '9')
 
-    expect(status).toHaveTextContent('Só há 5 em estoque.')
-    expect(input).toHaveAccessibleDescription('Só há 5 em estoque.')
-    expect(increase).toHaveAccessibleDescription('Só há 5 em estoque.')
+    expect(status).toHaveTextContent('Só há 5 em estoque, não 9.')
+    expect(input).toHaveAccessibleDescription('Só há 5 em estoque, não 9.')
+    expect(increase).toHaveAccessibleDescription('Só há 5 em estoque, não 9.')
 
     await user.click(screen.getByRole('button', { name: 'Diminuir quantidade de Produto 1' }))
 
@@ -172,6 +172,50 @@ describe('CartPage', () => {
     await user.click(screen.getByRole('button', { name: 'Remover Produto 1' }))
 
     expect(status).toHaveTextContent('Seu carrinho está vazio.')
+  })
+
+  it('digitar acima do estoque já no limite muda o aviso para ser anunciado de novo', async () => {
+    seedCart([makeCartItem({ productId: 1, maxQuantity: 5, quantity: 5 })])
+    const { user } = renderRoute('/cart')
+    const status = within(screen.getByRole('listitem')).getByRole('status')
+    const input = screen.getByRole('spinbutton', { name: 'Quantidade de Produto 1' })
+    expect(status).toHaveTextContent('Só há 5 em estoque.')
+
+    await user.clear(input)
+    await user.type(input, '9')
+
+    expect(input).toHaveValue(5)
+    expect(status).toHaveTextContent('Só há 5 em estoque, não 9.')
+
+    await user.click(screen.getByRole('button', { name: 'Diminuir quantidade de Produto 1' }))
+    await user.click(screen.getByRole('button', { name: 'Aumentar quantidade de Produto 1' }))
+
+    expect(status).toHaveTextContent('Só há 5 em estoque.')
+  })
+
+  it('mudança vinda de outra aba não traz de volta o número pedido antes', async () => {
+    seedCart([makeCartItem({ productId: 1, maxQuantity: 5, quantity: 5 })])
+    const { user } = renderRoute('/cart')
+    const status = within(screen.getByRole('listitem')).getByRole('status')
+    const input = screen.getByRole('spinbutton', { name: 'Quantidade de Produto 1' })
+    await user.clear(input)
+    await user.type(input, '9')
+    expect(status).toHaveTextContent('Só há 5 em estoque, não 9.')
+
+    const otherTabSets = (quantity: number) =>
+      act(() => {
+        localStorage.setItem(
+          CART_STORAGE_KEY,
+          JSON.stringify({ items: [makeCartItem({ productId: 1, maxQuantity: 5, quantity })] }),
+        )
+        window.dispatchEvent(new StorageEvent('storage', { key: CART_STORAGE_KEY }))
+      })
+    otherTabSets(3)
+    expect(status).toBeEmptyDOMElement()
+    otherTabSets(5)
+
+    expect(input).toHaveValue(5)
+    expect(status).toHaveTextContent('Só há 5 em estoque.')
   })
 
   it('carrinho corrompido no storage abre vazio', () => {

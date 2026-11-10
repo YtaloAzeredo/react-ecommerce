@@ -29,6 +29,7 @@ export function OrderSummary({
               {item.quantity}× {item.title}
             </span>
             <span className="whitespace-nowrap">
+              <span className="sr-only">Total do item: </span>
               {formatPrice(item.priceCents * item.quantity)}
             </span>
           </li>

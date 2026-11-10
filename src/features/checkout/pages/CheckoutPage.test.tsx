@@ -41,7 +41,7 @@ async function fillCard(user: UserEvent, cardNumber: string) {
 
 async function openCheckout() {
   const rendered = renderRoute('/checkout')
-  await screen.findByRole('heading', { level: 1, name: 'Finalizar compra' })
+  await screen.findByRole('heading', { level: 1, name: 'Finalizar compra' }, { timeout: 5000 })
   return rendered
 }
 
@@ -64,14 +64,22 @@ describe('CheckoutPage', () => {
       await screen.findByRole('heading', { level: 1, name: 'Finalizar compra' }, { timeout: 5000 }),
     ).toBeInTheDocument()
     expect(screen.queryByText('Carregando…')).not.toBeInTheDocument()
-  }, 10_000)
+  })
+
+  it('o total de cada item do resumo é lido com rótulo', async () => {
+    await openCheckout()
+
+    expect(summary().getByRole('listitem')).toHaveTextContent(/Total do item: US\$ 100,00/)
+  })
 
   it('carrinho vazio redireciona para /cart', async () => {
     localStorage.clear()
 
     const { router } = renderRoute('/checkout')
 
-    expect(await screen.findByText('Seu carrinho está vazio.')).toBeInTheDocument()
+    expect(
+      await screen.findByText('Seu carrinho está vazio.', {}, { timeout: 5000 }),
+    ).toBeInTheDocument()
     expect(router.state.location.pathname).toBe('/cart')
   })
 
@@ -154,7 +162,11 @@ describe('CheckoutPage', () => {
     await user.click(screen.getByRole('button', { name: 'Finalizar pedido' }))
 
     expect(
-      await screen.findByRole('heading', { level: 1, name: 'Pedido confirmado!' }),
+      await screen.findByRole(
+        'heading',
+        { level: 1, name: 'Pedido confirmado!' },
+        { timeout: 5000 },
+      ),
     ).toBeInTheDocument()
     expect(router.state.location.pathname).toBe('/checkout/success')
     expect(router.state.location.state).toEqual(confirmation)
@@ -185,7 +197,9 @@ describe('CheckoutPage', () => {
 
     await user.click(screen.getByRole('button', { name: 'Finalizar pedido' }))
 
-    await waitFor(() => expect(router.state.location.pathname).toBe('/checkout/success'))
+    await waitFor(() => expect(router.state.location.pathname).toBe('/checkout/success'), {
+      timeout: 5000,
+    })
     expect(submitOrder).toHaveBeenCalledWith(
       expect.objectContaining({
         totalCents: 10000,

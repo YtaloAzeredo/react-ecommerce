@@ -11,8 +11,14 @@ export function CartLineItem({ item, onRemove }: { item: CartItem; onRemove: () 
   const { setQuantity, remove } = useCart()
   const { productId, title, priceCents, thumbnailUrl, maxQuantity, quantity } = item
   const [draft, setDraft] = useState<string | null>(null)
+  const [overflow, setOverflow] = useState<number | null>(null)
   const limitId = useId()
   const atLimit = quantity >= maxQuantity
+  if (overflow !== null && !atLimit) setOverflow(null)
+  const limitMessage =
+    overflow === null
+      ? `Só há ${maxQuantity} em estoque.`
+      : `Só há ${maxQuantity} em estoque, não ${overflow}.`
 
   return (
     <li className="flex gap-4 py-4">
@@ -56,6 +62,7 @@ export function CartLineItem({ item, onRemove }: { item: CartItem; onRemove: () 
               const value = event.target.value
               const next = Number(value)
               if (value !== '' && Number.isInteger(next) && next >= 1) {
+                setOverflow(next > maxQuantity ? next : null)
                 setQuantity(productId, next)
                 setDraft(null)
               } else {
@@ -90,7 +97,7 @@ export function CartLineItem({ item, onRemove }: { item: CartItem; onRemove: () 
           </button>
         </div>
         <p id={limitId} role="status" className={atLimit ? 'text-sm text-slate-600' : 'sr-only'}>
-          {atLimit && `Só há ${maxQuantity} em estoque.`}
+          {atLimit && limitMessage}
         </p>
       </div>
     </li>

@@ -32,5 +32,5 @@ describe('RootLayout', () => {
       await screen.findByRole('heading', { level: 1, name: 'Finalizar compra' }, { timeout: 5000 }),
     ).toBeInTheDocument()
     expect(screen.queryByText('Carregando página…')).not.toBeInTheDocument()
-  }, 10_000)
+  })
 })

@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react'
+import { act, screen } from '@testing-library/react'
 import { delay, http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
 import { API_URL } from '@/shared/api/http'
@@ -185,6 +185,31 @@ describe('ProductDetailPage', () => {
     ).toBeInTheDocument()
     expect(retry).toHaveFocus()
     expect(screen.getByRole('heading', { level: 1, name: 'Da lista' })).toBeInTheDocument()
+  })
+
+  it('depois de uma nova tentativa que falhou, um sucesso posterior não rouba o foco', async () => {
+    let failing = true
+    server.use(
+      http.get(`${API_URL}/products/5`, async () => {
+        await delay(20)
+        return failing
+          ? new HttpResponse(null, { status: 500 })
+          : HttpResponse.json(makeProductDto({ id: 5 }))
+      }),
+    )
+    const queryClient = createTestQueryClient()
+    const { user } = renderRoute('/products/5', { queryClient })
+    await screen.findByText('Não foi possível carregar o produto.')
+    await user.click(screen.getByRole('button', { name: 'Tentar novamente' }))
+    expect(await screen.findByText('Não foi possível carregar o produto.')).toBeInTheDocument()
+
+    failing = false
+    const back = screen.getByRole('link', { name: 'Voltar' })
+    act(() => back.focus())
+    await act(() => queryClient.refetchQueries({ queryKey: productKeys.detail(5) }))
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Produto 5' })).not.toHaveFocus()
+    expect(back).toHaveFocus()
   })
 
   it('Voltar leva ao catálogo quando a pessoa entrou direto pelo link', async () => {

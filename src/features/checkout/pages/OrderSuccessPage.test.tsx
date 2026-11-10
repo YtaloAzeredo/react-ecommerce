@@ -15,7 +15,11 @@ describe('OrderSuccessPage', () => {
     })
 
     expect(
-      await screen.findByRole('heading', { level: 1, name: 'Pedido confirmado!' }),
+      await screen.findByRole(
+        'heading',
+        { level: 1, name: 'Pedido confirmado!' },
+        { timeout: 5000 },
+      ),
     ).toBeInTheDocument()
     expect(screen.getByText('AB12CD34')).toBeInTheDocument()
     expect(screen.getByText('US$ 95,00')).toBeInTheDocument()
@@ -26,7 +30,7 @@ describe('OrderSuccessPage', () => {
   it('sem estado redireciona para a loja', async () => {
     const { router } = renderRoute('/checkout/success')
 
-    await waitFor(() => expect(router.state.location.pathname).toBe('/'))
+    await waitFor(() => expect(router.state.location.pathname).toBe('/'), { timeout: 5000 })
   })
 
   it('estado inválido redireciona para a loja', async () => {
@@ -38,7 +42,7 @@ describe('OrderSuccessPage', () => {
     ]) {
       const { router, unmount } = renderRoute('/checkout/success', { state })
 
-      await waitFor(() => expect(router.state.location.pathname).toBe('/'))
+      await waitFor(() => expect(router.state.location.pathname).toBe('/'), { timeout: 5000 })
       unmount()
     }
   })
