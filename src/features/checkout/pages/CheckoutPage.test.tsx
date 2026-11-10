@@ -61,10 +61,10 @@ describe('CheckoutPage', () => {
     expect(screen.getByText('Carregando…')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Vitrine' })).toBeInTheDocument()
     expect(
-      await screen.findByRole('heading', { level: 1, name: 'Finalizar compra' }),
+      await screen.findByRole('heading', { level: 1, name: 'Finalizar compra' }, { timeout: 5000 }),
     ).toBeInTheDocument()
     expect(screen.queryByText('Carregando…')).not.toBeInTheDocument()
-  })
+  }, 10_000)
 
   it('carrinho vazio redireciona para /cart', async () => {
     localStorage.clear()

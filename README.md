@@ -120,7 +120,7 @@ O app é publicado na [Vercel](https://vercel.com), conectada ao repositório do
   - a próxima página já é buscada antes do clique.
 - **Carrinho:**
   - adicionar pelo detalhe do produto, com contador no cabeçalho;
-  - mudar quantidades e remover itens, sempre dentro do limite do estoque;
+  - mudar quantidades e remover itens, sempre dentro do limite do estoque, com aviso quando ele é atingido;
   - o carrinho continua lá depois de atualizar a página e fica igual em todas as abas abertas;
   - fica salvo no `localStorage`, e dado corrompido vira carrinho vazio.
 - **Checkout:**

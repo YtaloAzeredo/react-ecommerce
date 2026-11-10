@@ -27,6 +27,14 @@ describe('CartPage', () => {
     expect(summary().getByText('US$ 19,98')).toBeInTheDocument()
   })
 
+  it('o total da linha é lido com o rótulo "Total"', () => {
+    seedCart([makeCartItem({ productId: 1, priceCents: 999, quantity: 2 })])
+
+    renderRoute('/cart')
+
+    expect(screen.getByRole('listitem')).toHaveTextContent('Total: US$ 19,98')
+  })
+
   it('aumentar e diminuir atualizam o subtotal', async () => {
     seedCart([makeCartItem({ productId: 1, priceCents: 999, maxQuantity: 5, quantity: 1 })])
     const { user } = renderRoute('/cart')
@@ -64,6 +72,7 @@ describe('CartPage', () => {
 
     expect(increase).toHaveAttribute('aria-disabled', 'true')
     expect(increase).toHaveFocus()
+    expect(increase).toHaveAccessibleDescription('Só há 2 em estoque.')
     expect(summary().getByText('US$ 19,98')).toBeInTheDocument()
   })
 
@@ -95,6 +104,30 @@ describe('CartPage', () => {
     await user.type(input, '9')
 
     expect(input).toHaveValue(5)
+  })
+
+  it('chegar ao estoque explica o limite e anuncia', async () => {
+    seedCart([makeCartItem({ productId: 1, maxQuantity: 5, quantity: 1 })])
+    const { user } = renderRoute('/cart')
+    const line = within(screen.getByRole('listitem'))
+    const input = screen.getByRole('spinbutton', { name: 'Quantidade de Produto 1' })
+    const increase = screen.getByRole('button', { name: 'Aumentar quantidade de Produto 1' })
+    const status = line.getByRole('status')
+    expect(status).toBeEmptyDOMElement()
+    expect(input).not.toHaveAccessibleDescription()
+
+    await user.clear(input)
+    await user.type(input, '9')
+
+    expect(status).toHaveTextContent('Só há 5 em estoque.')
+    expect(input).toHaveAccessibleDescription('Só há 5 em estoque.')
+    expect(increase).toHaveAccessibleDescription('Só há 5 em estoque.')
+
+    await user.click(screen.getByRole('button', { name: 'Diminuir quantidade de Produto 1' }))
+
+    expect(status).toBeEmptyDOMElement()
+    expect(input).not.toHaveAccessibleDescription()
+    expect(increase).not.toHaveAccessibleDescription()
   })
 
   it('apagar o campo de quantidade não remove o item', async () => {
@@ -131,7 +164,9 @@ describe('CartPage', () => {
   it('esvaziar o carrinho anuncia que ele ficou vazio', async () => {
     seedCart([makeCartItem({ productId: 1 })])
     const { user } = renderRoute('/cart')
-    const status = within(screen.getByRole('main')).getByRole('status')
+    const [status] = within(screen.getByRole('main'))
+      .getAllByRole('status')
+      .filter((element) => !element.closest('li'))
     expect(status).toBeEmptyDOMElement()
 
     await user.click(screen.getByRole('button', { name: 'Remover Produto 1' }))
