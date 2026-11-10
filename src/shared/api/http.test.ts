@@ -1,7 +1,7 @@
 import { http as mswHttp, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
 import { server } from '@/test/server'
-import { API_URL, HttpError, httpGet } from './http'
+import { API_URL, HttpError, httpGet, isNotFound } from './http'
 
 describe('httpGet', () => {
   it('monta a URL com os parâmetros e ignora os indefinidos', async () => {
@@ -34,5 +34,14 @@ describe('httpGet', () => {
 
     expect(error).toBeInstanceOf(HttpError)
     expect((error as HttpError).status).toBe(404)
+  })
+})
+
+describe('isNotFound', () => {
+  it('reconhece só o HttpError com status 404', () => {
+    expect(isNotFound(new HttpError(404))).toBe(true)
+    expect(isNotFound(new HttpError(500))).toBe(false)
+    expect(isNotFound(new Error('rede'))).toBe(false)
+    expect(isNotFound(undefined)).toBe(false)
   })
 })

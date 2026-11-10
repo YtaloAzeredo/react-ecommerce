@@ -10,6 +10,10 @@ export class HttpError extends Error {
   }
 }
 
+export function isNotFound(error: unknown): boolean {
+  return error instanceof HttpError && error.status === 404
+}
+
 type QueryParams = Record<string, string | number | undefined>
 
 export async function httpGet<T>(

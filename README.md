@@ -55,6 +55,8 @@ src/
 Escolhas que não dá para ver só lendo o código:
 
 - **A página anterior só fica na tela se for da mesma categoria.** Ao trocar de página, a lista anterior continua visível enquanto a nova carrega. Ao trocar de categoria isso não acontece: mostrar produtos de outra categoria sob o título novo seria pior que o "Carregando" (`useProducts`).
+- **O select de categoria, fechado e movido pelas setas, só navega no Enter ou ao sair do campo.** Em alguns navegadores (Firefox, Chrome no Windows) o select fechado dispara `change` a cada seta, na mesma tarefa do `keydown`; navegar a cada tecla trocaria a URL e buscaria produtos a cada passo. Uma escolha feita no menu aberto, com o mouse ou com Enter, chega depois dessa tarefa e navega na hora (`CategoryFilter`).
+- **Quando uma página nova falha, a paginação continua na tela.** O total de páginas vem de qualquer página da mesma categoria que já esteja no cache; sem isso só sobraria "Tentar novamente" (`CatalogPage`).
 - **O carrinho fica igual em todas as abas.** Cada aba guarda o carrinho em memória e regrava o `localStorage` a cada mudança; sem ouvir o evento `storage`, uma aba aberta antes apagaria o que a outra adicionou (`CartProvider`).
 - **Apagar o campo de quantidade não remove o item.** O texto em edição fica só no campo e só um inteiro a partir de 1 chega ao carrinho; para remover existe o botão "Remover" (`CartLineItem`).
 - **As máscaras mantêm o cursor no lugar.** Reescrever o valor do campo manda o cursor para o fim; quem corrigisse um dígito no meio do telefone digitaria o próximo no fim e gravaria outro número válido. Depois de aplicar a máscara, o cursor volta para depois do mesmo número de dígitos (`FormField`).

@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query'
 import { useRef, useState } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router'
 import { Pagination } from '@/shared/ui/Pagination'
@@ -7,6 +8,7 @@ import { ProductGrid } from '../components/ProductGrid'
 import { useCatalogParams } from '../hooks/useCatalogParams'
 import { useCategories } from '../hooks/useCategories'
 import { useProducts } from '../hooks/useProducts'
+import { findKnownTotalPages } from '../queries'
 
 const buttonClass =
   'rounded-md bg-slate-900 px-4 py-2 font-medium text-white hover:bg-slate-700 aria-disabled:cursor-not-allowed aria-disabled:opacity-60'
@@ -14,6 +16,7 @@ const buttonClass =
 export function CatalogPage() {
   const { page, category, hrefFor } = useCatalogParams()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const products = useProducts({ page, category })
   const categories = useCategories()
   const headingRef = useRef<HTMLHeadingElement>(null)
@@ -26,6 +29,16 @@ export function CatalogPage() {
   if (products.data && !products.isPlaceholderData && page > products.data.totalPages) {
     return <Navigate to={hrefFor({ page: products.data.totalPages })} replace />
   }
+
+  const knownTotalPages = products.data?.totalPages ?? findKnownTotalPages(queryClient, category)
+
+  const paginationFor = (totalPages: number) => (
+    <Pagination page={page} totalPages={totalPages} getHref={(target) => hrefFor({ page: target })}>
+      <Pagination.Previous />
+      <Pagination.Items />
+      <Pagination.Next />
+    </Pagination>
+  )
 
   return (
     <section className="flex flex-col gap-6">
@@ -84,28 +97,33 @@ export function CatalogPage() {
       {products.isPending && !retrying ? (
         <StatusMessage>Carregando produtos…</StatusMessage>
       ) : !products.data || (retrying && products.isPlaceholderData) ? (
-        <StatusMessage
-          tone="error"
-          action={
-            <button
-              type="button"
-              className={buttonClass}
-              aria-disabled={retrying || undefined}
-              onClick={() => {
-                if (retrying) return
-                setRetrying(true)
-                void products.refetch().then((result) => {
-                  setRetrying(false)
-                  if (!result.isError) headingRef.current?.focus()
-                })
-              }}
-            >
-              Tentar novamente
-            </button>
-          }
-        >
-          {retrying ? 'Tentando novamente…' : 'Não foi possível carregar os produtos.'}
-        </StatusMessage>
+        <>
+          <StatusMessage
+            tone="error"
+            action={
+              <button
+                type="button"
+                className={buttonClass}
+                aria-disabled={retrying || undefined}
+                onClick={() => {
+                  if (retrying) return
+                  setRetrying(true)
+                  void products.refetch().then((result) => {
+                    setRetrying(false)
+                    if (!result.isError) headingRef.current?.focus()
+                  })
+                }}
+              >
+                Tentar novamente
+              </button>
+            }
+          >
+            {retrying ? 'Tentando novamente…' : 'Não foi possível carregar os produtos.'}
+          </StatusMessage>
+          {knownTotalPages !== undefined &&
+            page <= knownTotalPages &&
+            paginationFor(knownTotalPages)}
+        </>
       ) : products.data.total === 0 ? (
         <StatusMessage
           action={
@@ -119,15 +137,7 @@ export function CatalogPage() {
       ) : (
         <>
           <ProductGrid products={products.data.items} busy={products.isPlaceholderData} />
-          <Pagination
-            page={page}
-            totalPages={products.data.totalPages}
-            getHref={(target) => hrefFor({ page: target })}
-          >
-            <Pagination.Previous />
-            <Pagination.Items />
-            <Pagination.Next />
-          </Pagination>
+          {paginationFor(products.data.totalPages)}
         </>
       )}
     </section>

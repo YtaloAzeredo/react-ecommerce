@@ -1,8 +1,8 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { useEffect, useRef, useState, type Ref } from 'react'
+import { useEffect, useRef, useState, type MouseEvent, type Ref } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router'
 import { AddToCartButton } from '@/features/cart/components/AddToCartButton'
-import { HttpError } from '@/shared/api/http'
+import { isNotFound } from '@/shared/api/http'
 import { formatPrice } from '@/shared/lib/formatPrice'
 import { StatusMessage } from '@/shared/ui/StatusMessage'
 import { useProduct } from '../hooks/useProduct'
@@ -49,9 +49,7 @@ function ProductDetail({ id }: { id: number }) {
     return <ProductInfo product={product.data} headingRef={headingRef} />
   }
   if (product.isPending && !retrying) return <StatusMessage>Carregando produto…</StatusMessage>
-  if (product.isError && product.error instanceof HttpError && product.error.status === 404) {
-    return <ProductNotFound />
-  }
+  if (product.isError && isNotFound(product.error)) return <ProductNotFound />
 
   const retry = (
     <button
@@ -138,7 +136,7 @@ function BackLink() {
     <Link
       to="/"
       onClick={(event) => {
-        if (!cameFromApp) return
+        if (!cameFromApp || isModifiedClick(event)) return
         event.preventDefault()
         navigate(-1)
       }}
@@ -147,6 +145,10 @@ function BackLink() {
       <span aria-hidden="true">← </span>Voltar
     </Link>
   )
+}
+
+function isModifiedClick(event: MouseEvent<HTMLAnchorElement>): boolean {
+  return event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey
 }
 
 function ProductNotFound() {

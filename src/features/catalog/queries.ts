@@ -46,3 +46,15 @@ export function findProductInLists(queryClient: QueryClient, id: number): Produc
   }
   return undefined
 }
+
+export function findKnownTotalPages(
+  queryClient: QueryClient,
+  category: string | null,
+): number | undefined {
+  for (const [, page] of queryClient.getQueriesData<ProductPage>({
+    queryKey: [...productKeys.lists(), { category }],
+  })) {
+    if (page) return page.totalPages
+  }
+  return undefined
+}

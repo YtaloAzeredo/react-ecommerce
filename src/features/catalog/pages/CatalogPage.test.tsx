@@ -1,4 +1,4 @@
-import { act, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { delay, http, HttpResponse } from 'msw'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { API_URL } from '@/shared/api/http'
@@ -293,8 +293,122 @@ describe('CatalogPage', () => {
     expect(retry).toHaveAttribute('aria-disabled', 'true')
     expect(retry).toHaveFocus()
     expect(screen.queryByRole('link', { name: productLink(1) })).not.toBeInTheDocument()
+    expect(screen.getByRole('navigation', { name: 'Paginação' })).toBeInTheDocument()
     expect(await screen.findByText('Não foi possível carregar os produtos.')).toBeInTheDocument()
     expect(retry).toHaveFocus()
+    expect(screen.getByRole('navigation', { name: 'Paginação' })).toBeInTheDocument()
+  })
+
+  it('erro ao abrir uma página nova mantém a paginação na tela', async () => {
+    server.use(
+      http.get(`${API_URL}/products`, ({ request }) => {
+        if (new URL(request.url).searchParams.get('skip') !== '12') return undefined
+        return new HttpResponse(null, { status: 500 })
+      }),
+    )
+    const { user } = renderRoute('/')
+    await screen.findByRole('link', { name: productLink(1) })
+
+    await user.click(screen.getByRole('link', { name: 'Página 2' }))
+    await screen.findByText('Não foi possível carregar os produtos.')
+
+    const pagination = within(screen.getByRole('navigation', { name: 'Paginação' }))
+    expect(pagination.getByRole('link', { name: 'Página 2' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    )
+    await user.click(pagination.getByRole('link', { name: 'Página 1' }))
+
+    expect(await screen.findByRole('link', { name: productLink(1) })).toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('navegar com o teclado no select de categoria só navega ao confirmar com Enter', async () => {
+    const { router } = renderRoute('/')
+    await screen.findByRole('option', { name: 'Smartphones' })
+    const select = screen.getByRole('combobox', { name: 'Categoria' })
+    act(() => select.focus())
+
+    fireEvent.keyDown(select, { key: 'ArrowDown' })
+    fireEvent.change(select, { target: { value: 'beauty' } })
+    fireEvent.keyDown(select, { key: 'ArrowDown' })
+    fireEvent.change(select, { target: { value: 'smartphones' } })
+
+    expect(select).toHaveValue('smartphones')
+    expect(router.state.location.search).toBe('')
+
+    fireEvent.keyDown(select, { key: 'Enter' })
+
+    expect(router.state.location.search).toBe('?category=smartphones')
+  })
+
+  it('escolher no menu aberto do select de categoria navega na hora', async () => {
+    const { router } = renderRoute('/')
+    await screen.findByRole('option', { name: 'Smartphones' })
+    const select = screen.getByRole('combobox', { name: 'Categoria' })
+    act(() => select.focus())
+
+    fireEvent.keyDown(select, { key: 'ArrowDown' })
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    fireEvent.change(select, { target: { value: 'beauty' } })
+
+    expect(router.state.location.search).toBe('?category=beauty')
+  })
+
+  it('Espaço no select de categoria não segura a escolha seguinte', async () => {
+    const { router } = renderRoute('/')
+    await screen.findByRole('option', { name: 'Smartphones' })
+    const select = screen.getByRole('combobox', { name: 'Categoria' })
+    act(() => select.focus())
+
+    fireEvent.keyDown(select, { key: ' ' })
+    fireEvent.change(select, { target: { value: 'beauty' } })
+
+    expect(router.state.location.search).toBe('?category=beauty')
+  })
+
+  it('a URL mudar por fora descarta a escolha pendente do select de categoria', async () => {
+    const { router, user } = renderRoute('/')
+    await screen.findByRole('option', { name: 'Smartphones' })
+    const select = screen.getByRole('combobox', { name: 'Categoria' })
+    act(() => select.focus())
+    fireEvent.keyDown(select, { key: 'ArrowDown' })
+    fireEvent.change(select, { target: { value: 'beauty' } })
+
+    await act(() => router.navigate('/?category=smartphones'))
+
+    expect(select).toHaveValue('smartphones')
+    await user.tab()
+    expect(router.state.location.search).toBe('?category=smartphones')
+  })
+
+  it('sair do select de categoria com uma escolha pendente navega', async () => {
+    const { router, user } = renderRoute('/')
+    await screen.findByRole('option', { name: 'Smartphones' })
+    const select = screen.getByRole('combobox', { name: 'Categoria' })
+    act(() => select.focus())
+
+    fireEvent.keyDown(select, { key: 'ArrowDown' })
+    fireEvent.change(select, { target: { value: 'beauty' } })
+    expect(router.state.location.search).toBe('')
+    await user.tab()
+
+    expect(router.state.location.search).toBe('?category=beauty')
+  })
+
+  it('Escape no select de categoria descarta a escolha pendente', async () => {
+    const { router, user } = renderRoute('/')
+    await screen.findByRole('option', { name: 'Smartphones' })
+    const select = screen.getByRole('combobox', { name: 'Categoria' })
+    act(() => select.focus())
+
+    fireEvent.keyDown(select, { key: 'ArrowDown' })
+    fireEvent.change(select, { target: { value: 'beauty' } })
+    fireEvent.keyDown(select, { key: 'Escape' })
+    await user.tab()
+
+    expect(select).toHaveValue('')
+    expect(router.state.location.search).toBe('')
   })
 
   it('categoria com página além do fim vai para a última página da categoria', async () => {
@@ -347,6 +461,30 @@ describe('CatalogPage', () => {
 
     expect(router.state.location.search).toBe('?page=2')
     expect(screen.getByRole('link', { name: productLink(13) })).toBeInTheDocument()
+  })
+
+  it('Voltar com a tecla de nova aba deixa o navegador agir e não troca a página atual', async () => {
+    const { router, user } = renderRoute('/?page=2')
+    await user.click(await screen.findByRole('link', { name: productLink(13) }))
+    const back = await screen.findByRole('link', { name: 'Voltar' })
+    let defaultPrevented: boolean | undefined
+    const observeClick = (event: MouseEvent) => {
+      defaultPrevented = event.defaultPrevented
+      event.preventDefault()
+    }
+    document.addEventListener('click', observeClick)
+
+    try {
+      await user.keyboard('{Meta>}')
+      await user.click(back)
+      await user.keyboard('{/Meta}')
+    } finally {
+      document.removeEventListener('click', observeClick)
+    }
+
+    expect(defaultPrevented).toBe(false)
+    expect(back).toHaveAttribute('href', '/')
+    expect(router.state.location.pathname).toBe('/products/13')
   })
 
   it('voltar do detalhe restaura a posição de rolagem com a lista já na tela', async () => {
