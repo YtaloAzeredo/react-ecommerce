@@ -1,5 +1,5 @@
 import { screen } from '@testing-library/react'
-import { http, HttpResponse } from 'msw'
+import { delay, http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
 import { API_URL } from '@/shared/api/http'
 import { productDetailHandler } from '@/test/catalogHandlers'
@@ -95,7 +95,28 @@ describe('ProductDetailPage', () => {
     expect(screen.getByRole('link', { name: 'Voltar' })).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Tentar novamente' }))
 
-    expect(await screen.findByRole('heading', { level: 1, name: 'Produto 5' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: 'Produto 5' })).toHaveFocus()
+  })
+
+  it('confirmar o produto de novo com sucesso leva o foco para o título', async () => {
+    server.use(
+      http.get(`${API_URL}/products/5`, () => new HttpResponse(null, { status: 500 }), {
+        once: true,
+      }),
+      productDetailHandler(),
+    )
+    const queryClient = createTestQueryClient()
+    queryClient.setQueryData(
+      productKeys.list({ page: 1, category: null }),
+      toProductPage(makeProductListDto([makeProductDto({ id: 5, title: 'Da lista' })]), 1, 12),
+    )
+    const { user } = renderRoute('/products/5', { queryClient })
+    await screen.findByText('Não foi possível confirmar os dados mais recentes deste produto.')
+
+    await user.click(screen.getByRole('button', { name: 'Tentar novamente' }))
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Produto 5' })).toHaveFocus()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 
   it('erro depois do dado provisório mantém o produto na tela com um aviso', async () => {
@@ -114,6 +135,56 @@ describe('ProductDetailPage', () => {
     expect(screen.getByRole('heading', { level: 1, name: 'Da lista' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Tentar novamente' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Voltar' })).toBeInTheDocument()
+  })
+
+  it('tentar carregar o produto de novo avisa que está tentando e volta ao erro se falhar', async () => {
+    server.use(
+      http.get(`${API_URL}/products/5`, async () => {
+        await delay(50)
+        return new HttpResponse(null, { status: 500 })
+      }),
+    )
+    const { user } = renderRoute('/products/5')
+    await screen.findByText('Não foi possível carregar o produto.')
+    const retry = screen.getByRole('button', { name: 'Tentar novamente' })
+
+    await user.click(retry)
+
+    expect(await screen.findByText('Tentando novamente…')).toBeInTheDocument()
+    expect(retry).toHaveAttribute('aria-disabled', 'true')
+    expect(retry).toHaveFocus()
+    expect(await screen.findByText('Não foi possível carregar o produto.')).toBeInTheDocument()
+    expect(retry).not.toHaveAttribute('aria-disabled')
+    expect(retry).toHaveFocus()
+  })
+
+  it('tentar confirmar o produto de novo avisa que está tentando e mantém o produto na tela', async () => {
+    server.use(
+      http.get(`${API_URL}/products/5`, async () => {
+        await delay(50)
+        return new HttpResponse(null, { status: 500 })
+      }),
+    )
+    const queryClient = createTestQueryClient()
+    queryClient.setQueryData(
+      productKeys.list({ page: 1, category: null }),
+      toProductPage(makeProductListDto([makeProductDto({ id: 5, title: 'Da lista' })]), 1, 12),
+    )
+    const { user } = renderRoute('/products/5', { queryClient })
+    await screen.findByText('Não foi possível confirmar os dados mais recentes deste produto.')
+    const retry = screen.getByRole('button', { name: 'Tentar novamente' })
+
+    await user.click(retry)
+
+    expect(await screen.findByText('Tentando novamente…')).toBeInTheDocument()
+    expect(retry).toHaveAttribute('aria-disabled', 'true')
+    expect(retry).toHaveFocus()
+    expect(screen.getByRole('heading', { level: 1, name: 'Da lista' })).toBeInTheDocument()
+    expect(
+      await screen.findByText('Não foi possível confirmar os dados mais recentes deste produto.'),
+    ).toBeInTheDocument()
+    expect(retry).toHaveFocus()
+    expect(screen.getByRole('heading', { level: 1, name: 'Da lista' })).toBeInTheDocument()
   })
 
   it('Voltar leva ao catálogo quando a pessoa entrou direto pelo link', async () => {

@@ -96,6 +96,28 @@ describe('CatalogPage', () => {
 
     expect(await screen.findByRole('link', { name: productLink(1) })).toBeInTheDocument()
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 1, name: 'Produtos' })).toHaveFocus()
+  })
+
+  it('tentar carregar os produtos de novo avisa que está tentando e volta ao erro se falhar', async () => {
+    server.use(
+      http.get(`${API_URL}/products`, async () => {
+        await delay(50)
+        return new HttpResponse(null, { status: 500 })
+      }),
+    )
+    const { user } = renderRoute('/')
+    await screen.findByText('Não foi possível carregar os produtos.')
+    const retry = screen.getByRole('button', { name: 'Tentar novamente' })
+
+    await user.click(retry)
+
+    expect(await screen.findByText('Tentando novamente…')).toBeInTheDocument()
+    expect(retry).toHaveAttribute('aria-disabled', 'true')
+    expect(retry).toHaveFocus()
+    expect(await screen.findByText('Não foi possível carregar os produtos.')).toBeInTheDocument()
+    expect(retry).not.toHaveAttribute('aria-disabled')
+    expect(retry).toHaveFocus()
   })
 
   it('trocar a categoria volta para a página 1', async () => {
@@ -249,6 +271,30 @@ describe('CatalogPage', () => {
     expect(await screen.findByText('Não foi possível atualizar a lista.')).toBeInTheDocument()
     expect(retry).not.toHaveAttribute('aria-disabled')
     expect(screen.getByRole('link', { name: productLink(1) })).toBeInTheDocument()
+  })
+
+  it('tentar carregar uma página de novo mantém o aviso mesmo com a página anterior em cache', async () => {
+    server.use(
+      http.get(`${API_URL}/products`, async ({ request }) => {
+        if (new URL(request.url).searchParams.get('skip') !== '12') return undefined
+        await delay(50)
+        return new HttpResponse(null, { status: 500 })
+      }),
+    )
+    const { user } = renderRoute('/')
+    await screen.findByRole('link', { name: productLink(1) })
+
+    await user.click(screen.getByRole('link', { name: 'Página 2' }))
+    await screen.findByText('Não foi possível carregar os produtos.')
+    const retry = screen.getByRole('button', { name: 'Tentar novamente' })
+    await user.click(retry)
+
+    expect(await screen.findByText('Tentando novamente…')).toBeInTheDocument()
+    expect(retry).toHaveAttribute('aria-disabled', 'true')
+    expect(retry).toHaveFocus()
+    expect(screen.queryByRole('link', { name: productLink(1) })).not.toBeInTheDocument()
+    expect(await screen.findByText('Não foi possível carregar os produtos.')).toBeInTheDocument()
+    expect(retry).toHaveFocus()
   })
 
   it('categoria com página além do fim vai para a última página da categoria', async () => {
