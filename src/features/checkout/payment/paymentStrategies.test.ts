@@ -39,12 +39,21 @@ describe('paymentStrategies', () => {
 })
 
 describe('getInstallmentOptions', () => {
-  it('vai de 1 a 12 parcelas, arredondando a parcela para cima', () => {
+  it('vai de 1 a 12 parcelas, com a primeira absorvendo a diferença de centavos', () => {
     const options = getInstallmentOptions(10000)
 
     expect(options).toHaveLength(12)
-    expect(options[0]).toEqual({ count: 1, amountCents: 10000 })
-    expect(options[2]).toEqual({ count: 3, amountCents: 3334 })
-    expect(options[11]).toEqual({ count: 12, amountCents: 834 })
+    expect(options[0]).toEqual({ count: 1, amountCents: 10000, firstAmountCents: 10000 })
+    expect(options[2]).toEqual({ count: 3, amountCents: 3333, firstAmountCents: 3334 })
+    expect(options[11]).toEqual({ count: 12, amountCents: 833, firstAmountCents: 837 })
+  })
+
+  it('as parcelas somam exatamente o total', () => {
+    for (const totalCents of [1, 99, 1234, 9999, 10000, 123456]) {
+      for (const { count, amountCents, firstAmountCents } of getInstallmentOptions(totalCents)) {
+        expect(firstAmountCents + amountCents * (count - 1)).toBe(totalCents)
+        expect(firstAmountCents).toBeGreaterThanOrEqual(amountCents)
+      }
+    }
   })
 })

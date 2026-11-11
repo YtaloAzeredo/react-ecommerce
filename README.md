@@ -55,6 +55,8 @@ src/
 Escolhas que não dá para ver só lendo o código:
 
 - **A página anterior só fica na tela se for da mesma categoria.** Ao trocar de página, a lista anterior continua visível enquanto a nova carrega. Ao trocar de categoria isso não acontece: mostrar produtos de outra categoria sob o título novo seria pior que o "Carregando" (`useProducts`).
+- **A primeira parcela absorve a diferença de centavos.** Dividir US$ 100,00 em 3 não fecha; arredondar todas para cima somaria 2 centavos a mais que o total "sem juros". As demais parcelas ficam no valor arredondado para baixo e a primeira leva o resto, como é costume no Brasil (`getInstallmentOptions`).
+- **Trocar a forma de pagamento não apaga o cartão.** Os valores do cartão ficam guardados em memória na seção de pagamento enquanto a pessoa alterna entre as opções (por clique ou pelas setas do teclado) e voltam ao escolher cartão de novo. Eles continuam fora do rascunho e somem ao sair da página (`PaymentSection`).
 - **O select de categoria, fechado e movido pelas setas, só navega no Enter ou ao sair do campo.** Em alguns navegadores (Firefox, Chrome no Windows) o select fechado dispara `change` a cada seta, na mesma tarefa do `keydown`; navegar a cada tecla trocaria a URL e buscaria produtos a cada passo. Uma escolha feita no menu aberto, com o mouse ou com Enter, chega depois dessa tarefa e navega na hora (`CategoryFilter`).
 - **Quando uma página nova falha, a paginação continua na tela.** O total de páginas vem de qualquer página da mesma categoria que já esteja no cache; sem isso só sobraria "Tentar novamente" (`CatalogPage`).
 - **O carrinho fica igual em todas as abas.** Cada aba guarda o carrinho em memória e regrava o `localStorage` a cada mudança; sem ouvir o evento `storage`, uma aba aberta antes apagaria o que a outra adicionou (`CartProvider`).
@@ -124,9 +126,9 @@ O app é publicado na [Vercel](https://vercel.com), conectada ao repositório do
   - o carrinho continua lá depois de atualizar a página e fica igual em todas as abas abertas;
   - fica salvo no `localStorage`, e dado corrompido vira carrinho vazio.
 - **Checkout:**
-  - dados pessoais, endereço e pagamento por cartão de crédito (até 12x sem juros), Pix (5% de desconto) ou boleto;
+  - dados pessoais, endereço e pagamento por cartão de crédito (até 12x sem juros, com a primeira parcela absorvendo os centavos), Pix (5% de desconto) ou boleto;
   - validação campo a campo e máscaras de CPF, telefone, CEP e cartão;
-  - os campos mudam conforme a forma de pagamento, e o total é recalculado;
+  - os campos mudam conforme a forma de pagamento, o total é recalculado, e o cartão digitado volta ao escolher cartão de novo;
   - o envio é simulado com cerca de 1 s de espera, e o botão fica desabilitado enquanto envia, então um clique duplo não gera dois pedidos;
   - um pagamento recusado mostra o erro sem perder o que foi digitado;
   - dados pessoais e endereço ficam salvos como rascunho na aba (`sessionStorage`); dados de pagamento nunca são salvos.

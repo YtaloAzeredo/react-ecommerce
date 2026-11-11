@@ -1,12 +1,27 @@
+import { useRef } from 'react'
 import { useFormContext, useWatch } from 'react-hook-form'
 import type { CheckoutFormValues } from '../model/checkoutSchema'
 import { getPaymentStrategy, paymentStrategies } from '../payment/paymentStrategies'
 
+type PaymentValues = CheckoutFormValues['payment']
+type CardValues = Extract<PaymentValues, { method: 'credit_card' }>
+
 export function PaymentSection({ subtotalCents }: { subtotalCents: number }) {
-  const { control, setValue, clearErrors } = useFormContext<CheckoutFormValues>()
+  const { control, getValues, setValue, clearErrors, trigger, formState } =
+    useFormContext<CheckoutFormValues>()
   const method = useWatch({ control, name: 'payment.method' })
   const strategy = getPaymentStrategy(method)
   const { Fields } = strategy
+  const rememberedCard = useRef<CardValues | null>(null)
+
+  function switchTo(next: PaymentValues) {
+    const current = getValues('payment')
+    if (current.method === 'credit_card') rememberedCard.current = current
+    const restored = next.method === 'credit_card' ? rememberedCard.current : null
+    setValue('payment', restored ?? next)
+    clearErrors('payment')
+    if (restored && formState.isSubmitted) void trigger('payment')
+  }
 
   return (
     <fieldset className="flex flex-col gap-4">
@@ -24,10 +39,7 @@ export function PaymentSection({ subtotalCents }: { subtotalCents: number }) {
                 value={option.method}
                 checked={option.method === method}
                 aria-describedby={`payment-${option.method}-description`}
-                onChange={() => {
-                  setValue('payment', option.defaultValues)
-                  clearErrors('payment')
-                }}
+                onChange={() => switchTo(option.defaultValues)}
               />
               {option.label}
             </label>

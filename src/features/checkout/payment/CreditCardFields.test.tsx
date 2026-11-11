@@ -36,7 +36,12 @@ describe('CreditCardFields', () => {
 
     expect(within(select).getAllByRole('option')).toHaveLength(12)
     expect(
-      within(select).getByRole('option', { name: '3x de US$\u00a033,34 sem juros' }),
+      within(select).getByRole('option', { name: '2x de US$\u00a050,00 sem juros' }),
+    ).toBeTruthy()
+    expect(
+      within(select).getByRole('option', {
+        name: '3x de US$\u00a033,33 sem juros (a primeira de US$\u00a033,34)',
+      }),
     ).toBeTruthy()
   })
 

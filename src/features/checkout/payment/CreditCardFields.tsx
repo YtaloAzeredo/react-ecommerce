@@ -40,9 +40,11 @@ export function CreditCardFields({ totalCents }: { totalCents: number }) {
         valueAsNumber
         className="sm:col-span-2"
       >
-        {getInstallmentOptions(totalCents).map(({ count, amountCents }) => (
+        {getInstallmentOptions(totalCents).map(({ count, amountCents, firstAmountCents }) => (
           <option key={count} value={count}>
             {count}x de {formatPrice(amountCents)} sem juros
+            {firstAmountCents !== amountCents &&
+              ` (a primeira de ${formatPrice(firstAmountCents)})`}
           </option>
         ))}
       </SelectField>

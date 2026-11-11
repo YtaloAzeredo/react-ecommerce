@@ -5,7 +5,7 @@ import { CART_STORAGE_KEY, loadCart } from '@/features/cart/model/cartStorage'
 import { makeCartItem, seedCart } from '@/test/fixtures'
 import { renderRoute } from '@/test/renderRoute'
 import { PaymentDeclinedError, submitOrder } from '../api/orderService'
-import { loadCheckoutDraft } from '../model/checkoutDraft'
+import { CHECKOUT_DRAFT_KEY, loadCheckoutDraft } from '../model/checkoutDraft'
 
 vi.mock('../api/orderService', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../api/orderService')>()
@@ -150,6 +150,71 @@ describe('CheckoutPage', () => {
     expect(screen.queryByLabelText('Número do cartão')).not.toBeInTheDocument()
     expect(summary().getByText('Desconto').nextElementSibling).toHaveTextContent('-US$ 5,00')
     expect(summary().getByText('Total').nextElementSibling).toHaveTextContent('US$ 95,00')
+  })
+
+  it('trocar a forma de pagamento e voltar mantém o cartão digitado', async () => {
+    const { user } = await openCheckout()
+    await fillCard(user, '4242424242424242')
+    await user.selectOptions(screen.getByLabelText('Parcelamento'), '3')
+
+    await user.click(screen.getByRole('radio', { name: 'Pix' }))
+    expect(screen.queryByLabelText('Número do cartão')).not.toBeInTheDocument()
+    await user.click(screen.getByRole('radio', { name: 'Cartão de crédito' }))
+
+    expect(screen.getByLabelText('Número do cartão')).toHaveValue('4242 4242 4242 4242')
+    expect(screen.getByLabelText('Nome impresso no cartão')).toHaveValue('ANA SOUZA')
+    expect(screen.getByLabelText('Validade (MM/AA)')).toHaveValue('12/99')
+    expect(screen.getByLabelText('CVV')).toHaveValue('123')
+    expect(screen.getByLabelText('Parcelamento')).toHaveValue('3')
+    expect(sessionStorage.getItem(CHECKOUT_DRAFT_KEY)).not.toContain('4242')
+  })
+
+  it('pedido por Pix depois de digitar o cartão não envia o cartão', async () => {
+    vi.mocked(submitOrder).mockResolvedValue({
+      orderId: 'AB12CD34',
+      totalCents: 9500,
+      paymentMethod: 'pix',
+    })
+    const { user } = await openCheckout()
+    await fillCustomerAndAddress(user)
+    await fillCard(user, '4242424242424242')
+    await user.click(screen.getByRole('radio', { name: 'Pix' }))
+
+    await user.click(screen.getByRole('button', { name: 'Finalizar pedido' }))
+
+    await waitFor(() => expect(submitOrder).toHaveBeenCalledTimes(1))
+    expect(vi.mocked(submitOrder).mock.calls[0][0].payment).toEqual({ method: 'pix' })
+  })
+
+  it('cartão inválido já apontado no envio volta com o erro ao escolher cartão de novo', async () => {
+    const { user } = await openCheckout()
+    await fillCustomerAndAddress(user)
+    await fillCard(user, '1234567890123456')
+    await user.click(screen.getByRole('button', { name: 'Finalizar pedido' }))
+    await screen.findByText('Número de cartão inválido')
+
+    await user.click(screen.getByRole('radio', { name: 'Pix' }))
+    await user.click(screen.getByRole('radio', { name: 'Cartão de crédito' }))
+
+    const cardNumber = screen.getByLabelText('Número do cartão')
+    expect(cardNumber).toHaveValue('1234 5678 9012 3456')
+    expect(await screen.findByText('Número de cartão inválido')).toBeInTheDocument()
+    expect(cardNumber).toHaveAttribute('aria-invalid', 'true')
+  })
+
+  it('setas do teclado no grupo de pagamento não apagam o cartão', async () => {
+    const { user } = await openCheckout()
+    await fillCard(user, '4242424242424242')
+    const card = screen.getByRole('radio', { name: 'Cartão de crédito' })
+
+    await user.click(card)
+    await user.keyboard('{ArrowRight}')
+    expect(screen.getByRole('radio', { name: 'Pix' })).toBeChecked()
+    expect(screen.queryByLabelText('Número do cartão')).not.toBeInTheDocument()
+    await user.keyboard('{ArrowLeft}')
+
+    expect(card).toBeChecked()
+    expect(screen.getByLabelText('Número do cartão')).toHaveValue('4242 4242 4242 4242')
   })
 
   it('pedido aprovado limpa o carrinho e vai para a confirmação', async () => {
