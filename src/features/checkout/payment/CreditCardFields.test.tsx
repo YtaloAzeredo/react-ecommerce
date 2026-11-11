@@ -39,10 +39,24 @@ describe('CreditCardFields', () => {
       within(select).getByRole('option', { name: '2x de US$\u00a050,00 sem juros' }),
     ).toBeTruthy()
     expect(
-      within(select).getByRole('option', {
-        name: '3x de US$\u00a033,33 sem juros (a primeira de US$\u00a033,34)',
-      }),
+      within(select).getByRole('option', { name: '3x de US$\u00a033,33 sem juros' }),
     ).toBeTruthy()
+  })
+
+  it('avisa o valor da primeira parcela só quando ela é diferente das outras', async () => {
+    const user = renderFields(10000)
+    const select = screen.getByRole('combobox', { name: 'Parcelamento' })
+    expect(select).not.toHaveAccessibleDescription()
+
+    await user.selectOptions(select, '3')
+
+    expect(screen.getByText('A primeira parcela é de US$ 33,34.')).toBeInTheDocument()
+    expect(select).toHaveAccessibleDescription('A primeira parcela é de US$\u00a033,34.')
+
+    await user.selectOptions(select, '2')
+
+    expect(screen.queryByText(/A primeira parcela/)).not.toBeInTheDocument()
+    expect(select).not.toHaveAccessibleDescription()
   })
 
   it('número do cartão, validade e CVV recebem máscara', async () => {

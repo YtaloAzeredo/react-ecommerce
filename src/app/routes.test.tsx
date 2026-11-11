@@ -24,8 +24,8 @@ describe('rotas', () => {
   })
 
   describe.each([
-    { mode: 'sem StrictMode', strictMode: false },
-    { mode: 'com StrictMode', strictMode: true },
+    { mode: 'como em produção (efeitos uma vez)', strictMode: false },
+    { mode: 'como em desenvolvimento (StrictMode)', strictMode: true },
   ])('foco na troca de rota, $mode', ({ strictMode }) => {
     it('abrir o app não move o foco', async () => {
       renderRoute('/', { strictMode })

@@ -1,9 +1,17 @@
+import { useFormContext, useWatch } from 'react-hook-form'
 import { formatPrice } from '@/shared/lib/formatPrice'
 import { FormField, SelectField } from '../components/FormField'
+import type { CheckoutFormValues } from '../model/checkoutSchema'
 import { formatCardNumber, formatExpiry, onlyDigits } from '../model/masks'
 import { getInstallmentOptions } from './installments'
 
 export function CreditCardFields({ totalCents }: { totalCents: number }) {
+  const { control } = useFormContext<CheckoutFormValues>()
+  const installments = useWatch({ control, name: 'payment.installments' })
+  const options = getInstallmentOptions(totalCents)
+  const selected = options.find((option) => option.count === installments)
+  const firstDiffers = selected && selected.firstAmountCents !== selected.amountCents
+
   return (
     <div className="grid gap-4 sm:grid-cols-2">
       <FormField
@@ -37,14 +45,17 @@ export function CreditCardFields({ totalCents }: { totalCents: number }) {
       <SelectField
         name="payment.installments"
         label="Parcelamento"
+        hint={
+          firstDiffers
+            ? `A primeira parcela é de ${formatPrice(selected.firstAmountCents)}.`
+            : undefined
+        }
         valueAsNumber
         className="sm:col-span-2"
       >
-        {getInstallmentOptions(totalCents).map(({ count, amountCents, firstAmountCents }) => (
+        {options.map(({ count, amountCents }) => (
           <option key={count} value={count}>
             {count}x de {formatPrice(amountCents)} sem juros
-            {firstAmountCents !== amountCents &&
-              ` (a primeira de ${formatPrice(firstAmountCents)})`}
           </option>
         ))}
       </SelectField>

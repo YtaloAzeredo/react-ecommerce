@@ -166,6 +166,9 @@ describe('CheckoutPage', () => {
     expect(screen.getByLabelText('Validade (MM/AA)')).toHaveValue('12/99')
     expect(screen.getByLabelText('CVV')).toHaveValue('123')
     expect(screen.getByLabelText('Parcelamento')).toHaveValue('3')
+    expect(screen.getByLabelText('Parcelamento')).toHaveAccessibleDescription(
+      'A primeira parcela é de US$\u00a033,34.',
+    )
     expect(sessionStorage.getItem(CHECKOUT_DRAFT_KEY)).not.toContain('4242')
   })
 

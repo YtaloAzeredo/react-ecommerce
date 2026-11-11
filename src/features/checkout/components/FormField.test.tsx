@@ -1,16 +1,43 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import type { ReactNode } from 'react'
+import { useEffect, type ReactNode } from 'react'
 import { FormProvider, useForm } from 'react-hook-form'
 import { describe, expect, it } from 'vitest'
 import { formatCardNumber, formatPhone } from '../model/masks'
 import type { CheckoutFormValues } from '../model/checkoutSchema'
-import { FormField } from './FormField'
+import { FormField, SelectField } from './FormField'
 
 function FormWrapper({ children }: { children: ReactNode }) {
   const form = useForm<CheckoutFormValues>()
   return <FormProvider {...form}>{children}</FormProvider>
 }
+
+function FormWithStateError({ children }: { children: ReactNode }) {
+  const form = useForm<CheckoutFormValues>()
+  useEffect(() => {
+    form.setError('address.state', { type: 'manual', message: 'Selecione o estado' })
+  }, [form])
+  return <FormProvider {...form}>{children}</FormProvider>
+}
+
+describe('SelectField com dica', () => {
+  it('descreve o campo pelo erro e pela dica, nessa ordem', async () => {
+    render(
+      <SelectField name="address.state" label="Estado" hint="Use a sigla.">
+        <option value="">Selecione</option>
+        <option value="SP">SP</option>
+      </SelectField>,
+      { wrapper: FormWithStateError },
+    )
+    const select = screen.getByLabelText('Estado')
+
+    await screen.findByText('Selecione o estado')
+
+    expect(screen.getByText('Use a sigla.')).toBeInTheDocument()
+    expect(select).toHaveAttribute('aria-invalid', 'true')
+    expect(select).toHaveAccessibleDescription('Selecione o estado Use a sigla.')
+  })
+})
 
 describe('FormField com máscara', () => {
   it('corrigir um dígito no meio mantém o cursor no lugar', async () => {

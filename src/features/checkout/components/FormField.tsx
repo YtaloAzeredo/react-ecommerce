@@ -8,18 +8,20 @@ type CheckoutFieldPath = FieldPath<CheckoutFormValues>
 const controlClass =
   'h-10 w-full rounded-md border border-slate-300 bg-white px-3 aria-invalid:border-red-600'
 
-function useFieldState(name: CheckoutFieldPath) {
+function useFieldState(name: CheckoutFieldPath, hint?: string) {
   const { register, getFieldState, formState } = useFormContext<CheckoutFormValues>()
   const id = useId()
   const errorId = `${id}-error`
+  const hintId = `${id}-hint`
   const message = getFieldState(name, formState).error?.message
+  const describedBy = [message && errorId, hint && hintId].filter(Boolean).join(' ')
   return {
     register,
-    shell: { id, errorId, message },
+    shell: { id, errorId, hintId, message, hint },
     controlProps: {
       id,
       'aria-invalid': message ? true : undefined,
-      'aria-describedby': message ? errorId : undefined,
+      'aria-describedby': describedBy || undefined,
     },
   }
 }
@@ -27,14 +29,18 @@ function useFieldState(name: CheckoutFieldPath) {
 function FieldShell({
   id,
   errorId,
+  hintId,
   message,
+  hint,
   label,
   className = '',
   children,
 }: {
   id: string
   errorId: string
+  hintId: string
   message?: string
+  hint?: string
   label: string
   className?: string
   children: ReactNode
@@ -48,6 +54,11 @@ function FieldShell({
       {message && (
         <p id={errorId} className="text-sm text-red-700">
           {message}
+        </p>
+      )}
+      {hint && (
+        <p id={hintId} className="text-sm text-slate-600">
+          {hint}
         </p>
       )}
     </div>
@@ -96,17 +107,19 @@ export function FormField({ name, label, mask, className, ...inputProps }: FormF
 export function SelectField({
   name,
   label,
+  hint,
   valueAsNumber = false,
   className,
   children,
 }: {
   name: CheckoutFieldPath
   label: string
+  hint?: string
   valueAsNumber?: boolean
   className?: string
   children: ReactNode
 }) {
-  const { register, shell, controlProps } = useFieldState(name)
+  const { register, shell, controlProps } = useFieldState(name, hint)
 
   return (
     <FieldShell {...shell} label={label} className={className}>

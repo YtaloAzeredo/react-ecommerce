@@ -11,6 +11,7 @@ export function renderRoute(
   path: string,
   options: { queryClient?: QueryClient; state?: unknown; strictMode?: boolean } = {},
 ) {
+  const { strictMode = true } = options
   const queryClient = options.queryClient ?? createTestQueryClient()
   const router = createMemoryRouter(routes, {
     initialEntries: [{ ...parsePath(path), state: options.state }],
@@ -21,6 +22,6 @@ export function renderRoute(
       <RouterProvider router={router} />
     </AppProviders>
   )
-  const result = render(options.strictMode ? <StrictMode>{app}</StrictMode> : app)
+  const result = render(strictMode ? <StrictMode>{app}</StrictMode> : app)
   return { ...result, router, user, queryClient }
 }
