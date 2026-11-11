@@ -37,6 +37,29 @@ describe('SelectField com dica', () => {
     expect(select).toHaveAttribute('aria-invalid', 'true')
     expect(select).toHaveAccessibleDescription('Selecione o estado Use a sigla.')
   })
+
+  it('dica vazia mantém a região viva sem descrever o campo', () => {
+    render(
+      <SelectField name="address.state" label="Estado" hint="">
+        <option value="SP">SP</option>
+      </SelectField>,
+      { wrapper: FormWrapper },
+    )
+
+    expect(screen.getByRole('status')).toBeEmptyDOMElement()
+    expect(screen.getByLabelText('Estado')).not.toHaveAccessibleDescription()
+  })
+
+  it('sem dica não há região viva', () => {
+    render(
+      <SelectField name="address.state" label="Estado">
+        <option value="SP">SP</option>
+      </SelectField>,
+      { wrapper: FormWrapper },
+    )
+
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+  })
 })
 
 describe('FormField com máscara', () => {

@@ -59,6 +59,16 @@ describe('CreditCardFields', () => {
     expect(select).not.toHaveAccessibleDescription()
   })
 
+  it('a dica da primeira parcela é anunciada ao trocar o parcelamento', async () => {
+    const user = renderFields(10000)
+    const status = screen.getByRole('status')
+    expect(status).toBeEmptyDOMElement()
+
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Parcelamento' }), '3')
+
+    expect(status).toHaveTextContent('A primeira parcela é de US$ 33,34.')
+  })
+
   it('número do cartão, validade e CVV recebem máscara', async () => {
     const user = renderFields(10000)
 

@@ -46,9 +46,7 @@ export function CreditCardFields({ totalCents }: { totalCents: number }) {
         name="payment.installments"
         label="Parcelamento"
         hint={
-          firstDiffers
-            ? `A primeira parcela é de ${formatPrice(selected.firstAmountCents)}.`
-            : undefined
+          firstDiffers ? `A primeira parcela é de ${formatPrice(selected.firstAmountCents)}.` : ''
         }
         valueAsNumber
         className="sm:col-span-2"

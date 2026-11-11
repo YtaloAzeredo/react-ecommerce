@@ -56,8 +56,8 @@ function FieldShell({
           {message}
         </p>
       )}
-      {hint && (
-        <p id={hintId} className="text-sm text-slate-600">
+      {hint !== undefined && (
+        <p id={hintId} role="status" className={hint ? 'text-sm text-slate-600' : 'sr-only'}>
           {hint}
         </p>
       )}

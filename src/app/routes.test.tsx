@@ -1,5 +1,5 @@
 import { screen } from '@testing-library/react'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { catalogHandlers } from '@/test/catalogHandlers'
 import { makeCartItem, seedCart } from '@/test/fixtures'
 import { renderRoute } from '@/test/renderRoute'
@@ -27,6 +27,14 @@ describe('rotas', () => {
     { mode: 'como em produção (efeitos uma vez)', strictMode: false },
     { mode: 'como em desenvolvimento (StrictMode)', strictMode: true },
   ])('foco na troca de rota, $mode', ({ strictMode }) => {
+    it('busca cada query uma vez por montagem do modo', async () => {
+      const fetchSpy = vi.spyOn(globalThis, 'fetch')
+      renderRoute('/', { strictMode })
+      await screen.findByRole('heading', { level: 1, name: 'Produtos' })
+
+      expect(fetchSpy).toHaveBeenCalledTimes(strictMode ? 4 : 2)
+    })
+
     it('abrir o app não move o foco', async () => {
       renderRoute('/', { strictMode })
       await screen.findByRole('heading', { level: 1, name: 'Produtos' })

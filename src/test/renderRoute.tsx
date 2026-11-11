@@ -1,7 +1,6 @@
 import type { QueryClient } from '@tanstack/react-query'
 import { render } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { StrictMode } from 'react'
 import { createMemoryRouter, parsePath, RouterProvider } from 'react-router'
 import { AppProviders } from '@/app/AppProviders'
 import { routes } from '@/app/routes'
@@ -22,6 +21,6 @@ export function renderRoute(
       <RouterProvider router={router} />
     </AppProviders>
   )
-  const result = render(strictMode ? <StrictMode>{app}</StrictMode> : app)
+  const result = render(app, { reactStrictMode: strictMode })
   return { ...result, router, user, queryClient }
 }

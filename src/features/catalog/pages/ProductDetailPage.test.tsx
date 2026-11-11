@@ -54,7 +54,7 @@ describe('ProductDetailPage', () => {
     expect(await screen.findByText('Esgotado', { selector: 'p' })).toBeInTheDocument()
   })
 
-  it('id que não é número mostra produto não encontrado sem chamar a API', () => {
+  it('id que não é número mostra produto não encontrado sem chamar a API', async () => {
     let requests = 0
     server.use(
       http.get(`${API_URL}/*`, () => {
@@ -68,6 +68,7 @@ describe('ProductDetailPage', () => {
     expect(screen.getByText('Produto não encontrado.')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Ver produtos' })).toHaveAttribute('href', '/')
     expect(screen.getByRole('link', { name: 'Voltar' })).toBeInTheDocument()
+    await act(() => new Promise<void>((resolve) => setTimeout(resolve, 0)))
     expect(requests).toBe(0)
   })
 
