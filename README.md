@@ -6,7 +6,7 @@ Loja virtual de mentira, feita em React para portfólio. Ninguém compra nada de
 
 O projeto existe para mostrar, em código e funcionando, quatro coisas comuns em front-end de mercado:
 
-- **Paginação** feita pelo servidor, com a página e o filtro na URL (dá para atualizar ou compartilhar o link sem perder onde estava).
+- **Paginação** feita pelo servidor, com a página, o filtro e a busca na URL (dá para atualizar ou compartilhar o link sem perder onde estava).
 - **Estado de formulário** num checkout com validação por campo, máscaras, campos que mudam conforme a forma de pagamento, envio assíncrono com tratamento de erro e rascunho preservado.
 - **Cache de telas:** sair da página 3 do catálogo, abrir um produto e voltar faz a lista aparecer na hora, na mesma página e na mesma posição de rolagem, sem carregar de novo.
 - **Padrões de projeto** usados no dia a dia, aplicados onde fazem sentido.
@@ -38,7 +38,7 @@ O projeto existe para mostrar, em código e funcionando, quatro coisas comuns em
 
 ### Telas
 
-`/` catálogo (`?page=N&category=slug`) → `/products/:id` detalhe → `/cart` carrinho → `/checkout` formulário → `/checkout/success` confirmação. Qualquer outro endereço mostra uma página 404.
+`/` catálogo (`?page=N&category=slug` ou `?q=termo&page=N`) → `/products/:id` detalhe → `/cart` carrinho → `/checkout` formulário → `/checkout/success` confirmação. Qualquer outro endereço mostra uma página 404.
 
 ### Organização das pastas
 
@@ -54,11 +54,12 @@ src/
 
 Escolhas que não dá para ver só lendo o código:
 
-- **A página anterior só fica na tela se for da mesma categoria.** Ao trocar de página, a lista anterior continua visível enquanto a nova carrega. Ao trocar de categoria isso não acontece: mostrar produtos de outra categoria sob o título novo seria pior que o "Carregando" (`useProducts`).
+- **A página anterior só fica na tela se for da mesma categoria e da mesma busca.** Ao trocar de página, a lista anterior continua visível enquanto a nova carrega. Ao trocar de categoria ou de termo isso não acontece: mostrar produtos de outra lista sob o título novo seria pior que o "Carregando" (`useProducts`).
 - **A primeira parcela absorve a diferença de centavos.** Dividir US$ 100,00 em 3 não fecha; arredondar todas para cima somaria 2 centavos a mais que o total "sem juros". As demais parcelas ficam no valor arredondado para baixo e a primeira leva o resto, como é costume no Brasil; o valor da primeira aparece numa dica abaixo do select, porque dentro da opção o texto cortava em telas de 320 px (`getInstallmentOptions`, `CreditCardFields`).
 - **Trocar a forma de pagamento não apaga o cartão.** Os valores do cartão ficam guardados em memória na seção de pagamento enquanto a pessoa alterna entre as opções (por clique ou pelas setas do teclado) e voltam ao escolher cartão de novo. Eles continuam fora do rascunho e somem ao sair da página (`PaymentSection`).
 - **O select de categoria, fechado e movido pelas setas, só navega no Enter ou ao sair do campo.** Em alguns navegadores (Firefox, Chrome no Windows) o select fechado dispara `change` a cada seta, na mesma tarefa do `keydown`; navegar a cada tecla trocaria a URL e buscaria produtos a cada passo. Uma escolha feita no menu aberto, com o mouse ou com Enter, chega depois dessa tarefa e navega na hora (`CategoryFilter`).
-- **Quando uma página nova falha, a paginação continua na tela.** O total de páginas vem de qualquer página da mesma categoria que já esteja no cache; sem isso só sobraria "Tentar novamente" (`CatalogPage`).
+- **Busca e categoria não se combinam.** A DummyJSON não tem busca dentro de uma categoria, e filtrar no cliente quebraria a paginação do servidor e mentiria no total. Buscar limpa a categoria; escolher uma categoria limpa a busca; na URL, `q` vence `category`. A busca só acontece ao confirmar (Enter ou o botão), não a cada tecla, e o foco vai para o título quando a lista nova chega (`useCatalogParams`, `SearchForm`, `CatalogPage`).
+- **Quando uma página nova falha, a paginação continua na tela.** O total de páginas vem de qualquer página da mesma categoria ou da mesma busca que já esteja no cache; sem isso só sobraria "Tentar novamente" (`CatalogPage`).
 - **O carrinho fica igual em todas as abas.** Cada aba guarda o carrinho em memória e regrava o `localStorage` a cada mudança; sem ouvir o evento `storage`, uma aba aberta antes apagaria o que a outra adicionou (`CartProvider`).
 - **Apagar o campo de quantidade não remove o item.** O texto em edição fica só no campo e só um inteiro a partir de 1 chega ao carrinho; para remover existe o botão "Remover" (`CartLineItem`).
 - **As máscaras mantêm o cursor no lugar.** Reescrever o valor do campo manda o cursor para o fim; quem corrigisse um dígito no meio do telefone digitaria o próximo no fim e gravaria outro número válido. Depois de aplicar a máscara, o cursor volta para depois do mesmo número de dígitos (`FormField`).
@@ -113,7 +114,7 @@ O app é publicado na [Vercel](https://vercel.com), conectada ao repositório do
 
 - **Catálogo:**
   - 12 produtos por página, vindos da API;
-  - página e categoria ficam na URL, e dá para filtrar por categoria;
+  - página, categoria e termo de busca ficam na URL; dá para filtrar por categoria ou buscar por texto (um ou outro);
   - há estados de carregando, erro e vazio;
   - a página anterior continua na tela enquanto a próxima carrega.
 - **Cache de telas:**

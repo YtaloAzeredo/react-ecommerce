@@ -1,19 +1,25 @@
 import { httpGet } from '@/shared/api/http'
-import type { Category, Product, ProductPage } from '../model/types'
+import type { Category, Product, ProductListParams, ProductPage } from '../model/types'
 import type { CategoryDto, ProductDto, ProductListDto } from './dto'
 import { toCategory, toProduct, toProductPage } from './productAdapter'
 
 export const PAGE_SIZE = 12
 
 export async function fetchProducts(
-  params: { page: number; category: string | null },
+  params: ProductListParams,
   signal?: AbortSignal,
 ): Promise<ProductPage> {
-  const path = params.category
-    ? `/products/category/${encodeURIComponent(params.category)}`
-    : '/products'
+  const path = params.search
+    ? '/products/search'
+    : params.category
+      ? `/products/category/${encodeURIComponent(params.category)}`
+      : '/products'
   const dto = await httpGet<ProductListDto>(path, {
-    params: { limit: PAGE_SIZE, skip: (params.page - 1) * PAGE_SIZE },
+    params: {
+      q: params.search ?? undefined,
+      limit: PAGE_SIZE,
+      skip: (params.page - 1) * PAGE_SIZE,
+    },
     signal,
   })
   return toProductPage(dto, params.page, PAGE_SIZE)

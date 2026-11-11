@@ -1,8 +1,6 @@
 import { queryOptions, type QueryClient } from '@tanstack/react-query'
 import { fetchCategories, fetchProduct, fetchProducts } from './api/productsApi'
-import type { Product, ProductPage } from './model/types'
-
-export type ProductListParams = { page: number; category: string | null }
+import type { Product, ProductListParams, ProductPage } from './model/types'
 
 export const productKeys = {
   all: ['products'] as const,
@@ -49,10 +47,10 @@ export function findProductInLists(queryClient: QueryClient, id: number): Produc
 
 export function findKnownTotalPages(
   queryClient: QueryClient,
-  category: string | null,
+  filter: Pick<ProductListParams, 'category' | 'search'>,
 ): number | undefined {
   for (const [, page] of queryClient.getQueriesData<ProductPage>({
-    queryKey: [...productKeys.lists(), { category }],
+    queryKey: [...productKeys.lists(), filter],
   })) {
     if (page) return page.totalPages
   }

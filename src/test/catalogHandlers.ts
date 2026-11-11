@@ -52,6 +52,24 @@ export function categoryProductsHandler(options: ListOptions = {}) {
   })
 }
 
+export function searchProductsHandler(options: ListOptions = {}) {
+  const products = options.products ?? catalogProducts
+  return http.get(`${API_URL}/products/search`, async ({ request }) => {
+    const url = new URL(request.url)
+    options.onRequest?.(url)
+    if (options.delayMs) await delay(options.delayMs)
+    const term = (url.searchParams.get('q') ?? '').trim().toLowerCase()
+    return paginate(
+      products.filter(
+        (product) =>
+          product.title.toLowerCase().includes(term) ||
+          product.description.toLowerCase().includes(term),
+      ),
+      url,
+    )
+  })
+}
+
 export function categoriesHandler() {
   return http.get(`${API_URL}/products/categories`, () => HttpResponse.json(catalogCategories))
 }
@@ -72,6 +90,7 @@ export function catalogHandlers() {
   return [
     productListHandler(),
     categoryProductsHandler(),
+    searchProductsHandler(),
     categoriesHandler(),
     productDetailHandler(),
   ]

@@ -20,7 +20,7 @@ describe('ProductDetailPage', () => {
     )
     const queryClient = createTestQueryClient()
     queryClient.setQueryData(
-      productKeys.list({ page: 1, category: null }),
+      productKeys.list({ page: 1, category: null, search: null }),
       toProductPage(makeProductListDto([makeProductDto({ id: 5, title: 'Da lista' })]), 1, 12),
     )
 
@@ -108,7 +108,7 @@ describe('ProductDetailPage', () => {
     )
     const queryClient = createTestQueryClient()
     queryClient.setQueryData(
-      productKeys.list({ page: 1, category: null }),
+      productKeys.list({ page: 1, category: null, search: null }),
       toProductPage(makeProductListDto([makeProductDto({ id: 5, title: 'Da lista' })]), 1, 12),
     )
     const { user } = renderRoute('/products/5', { queryClient })
@@ -124,7 +124,7 @@ describe('ProductDetailPage', () => {
     server.use(http.get(`${API_URL}/products/5`, () => new HttpResponse(null, { status: 500 })))
     const queryClient = createTestQueryClient()
     queryClient.setQueryData(
-      productKeys.list({ page: 1, category: null }),
+      productKeys.list({ page: 1, category: null, search: null }),
       toProductPage(makeProductListDto([makeProductDto({ id: 5, title: 'Da lista' })]), 1, 12),
     )
 
@@ -168,7 +168,7 @@ describe('ProductDetailPage', () => {
     )
     const queryClient = createTestQueryClient()
     queryClient.setQueryData(
-      productKeys.list({ page: 1, category: null }),
+      productKeys.list({ page: 1, category: null, search: null }),
       toProductPage(makeProductListDto([makeProductDto({ id: 5, title: 'Da lista' })]), 1, 12),
     )
     const { user } = renderRoute('/products/5', { queryClient })

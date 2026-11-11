@@ -1,9 +1,10 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { useEffect, useRef, useState, type MouseEvent, type Ref } from 'react'
+import { useEffect, useRef, useState, type Ref } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router'
 import { AddToCartButton } from '@/features/cart/components/AddToCartButton'
 import { isNotFound } from '@/shared/api/http'
 import { formatPrice } from '@/shared/lib/formatPrice'
+import { isModifiedClick } from '@/shared/lib/isModifiedClick'
 import { StatusMessage } from '@/shared/ui/StatusMessage'
 import { useProduct } from '../hooks/useProduct'
 import type { Product } from '../model/types'
@@ -145,10 +146,6 @@ function BackLink() {
       <span aria-hidden="true">← </span>Voltar
     </Link>
   )
-}
-
-function isModifiedClick(event: MouseEvent<HTMLAnchorElement>): boolean {
-  return event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey
 }
 
 function ProductNotFound() {

@@ -23,3 +23,9 @@ export interface Category {
   slug: string
   name: string
 }
+
+export interface ProductListParams {
+  page: number
+  category: string | null
+  search: string | null
+}

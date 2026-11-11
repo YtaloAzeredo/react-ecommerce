@@ -15,7 +15,7 @@ describe('fetchProducts', () => {
       }),
     )
 
-    const page = await fetchProducts({ page: 3, category: null })
+    const page = await fetchProducts({ page: 3, category: null, search: null })
 
     expect(requestedUrl?.searchParams.get('limit')).toBe('12')
     expect(requestedUrl?.searchParams.get('skip')).toBe('24')
@@ -32,9 +32,25 @@ describe('fetchProducts', () => {
       }),
     )
 
-    await fetchProducts({ page: 1, category: 'smartphones' })
+    await fetchProducts({ page: 1, category: 'smartphones', search: null })
 
     expect(requestedSlug).toBe('smartphones')
+  })
+
+  it('usa a rota de busca com o termo quando há busca', async () => {
+    let requestedUrl: URL | undefined
+    server.use(
+      http.get(`${API_URL}/products/search`, ({ request }) => {
+        requestedUrl = new URL(request.url)
+        return HttpResponse.json(makeProductListDto([]))
+      }),
+    )
+
+    await fetchProducts({ page: 2, category: null, search: 'a&b' })
+
+    expect(requestedUrl?.searchParams.get('q')).toBe('a&b')
+    expect(requestedUrl?.searchParams.get('limit')).toBe('12')
+    expect(requestedUrl?.searchParams.get('skip')).toBe('12')
   })
 })
 

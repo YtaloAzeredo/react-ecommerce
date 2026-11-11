@@ -8,6 +8,7 @@ import {
   catalogProducts,
   categoryProductsHandler,
   productListHandler,
+  searchProductsHandler,
 } from '@/test/catalogHandlers'
 import { makeProductDto, makeProductListDto } from '@/test/fixtures'
 import { createTestQueryClient } from '@/test/queryClient'
@@ -207,7 +208,7 @@ describe('CatalogPage', () => {
   it('erro ao atualizar uma lista que já está na tela mantém a lista e avisa', async () => {
     const queryClient = createTestQueryClient()
     queryClient.setQueryData(
-      productKeys.list({ page: 1, category: null }),
+      productKeys.list({ page: 1, category: null, search: null }),
       toProductPage(makeProductListDto(catalogProducts.slice(0, 12), 30), 1, 12),
       { updatedAt: Date.now() - 10 * 60_000 },
     )
@@ -223,7 +224,7 @@ describe('CatalogPage', () => {
   it('atualizar a lista de novo com sucesso leva o foco para o título', async () => {
     const queryClient = createTestQueryClient()
     queryClient.setQueryData(
-      productKeys.list({ page: 1, category: null }),
+      productKeys.list({ page: 1, category: null, search: null }),
       toProductPage(makeProductListDto(catalogProducts.slice(0, 12), 30), 1, 12),
       { updatedAt: Date.now() - 10 * 60_000 },
     )
@@ -249,7 +250,7 @@ describe('CatalogPage', () => {
   it('tentar atualizar a lista de novo avisa que está tentando e volta ao erro se falhar', async () => {
     const queryClient = createTestQueryClient()
     queryClient.setQueryData(
-      productKeys.list({ page: 1, category: null }),
+      productKeys.list({ page: 1, category: null, search: null }),
       toProductPage(makeProductListDto(catalogProducts.slice(0, 12), 30), 1, 12),
       { updatedAt: Date.now() - 10 * 60_000 },
     )
@@ -416,6 +417,234 @@ describe('CatalogPage', () => {
 
     await waitFor(() => expect(router.state.location.search).toBe('?category=beauty&page=2'))
     expect(router.state.historyAction).toBe('REPLACE')
+  })
+
+  it('buscar leva o termo para a URL, limpa a categoria e mostra os resultados', async () => {
+    const { router, user } = renderRoute('/?category=beauty&page=2')
+    await screen.findByRole('link', { name: productLink(13) })
+
+    await user.type(screen.getByRole('searchbox', { name: 'Buscar' }), 'Produto 1{Enter}')
+
+    expect(router.state.location.search).toBe('?q=Produto+1')
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Resultados para “Produto 1”' }),
+    ).toBeInTheDocument()
+    expect(await screen.findByRole('link', { name: productLink(10) })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: productLink(1) })).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: productLink(2) })).not.toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: 'Categoria' })).toHaveValue('')
+  })
+
+  it('o foco fica no campo enquanto a busca carrega e vai para o título quando a lista chega', async () => {
+    server.use(searchProductsHandler({ delayMs: 50 }))
+    const { user } = renderRoute('/')
+    await screen.findByRole('link', { name: productLink(1) })
+
+    await user.type(screen.getByRole('searchbox', { name: 'Buscar' }), 'Produto 1{Enter}')
+
+    const heading = await screen.findByRole('heading', {
+      level: 1,
+      name: 'Resultados para “Produto 1”',
+    })
+    expect(screen.getByRole('searchbox', { name: 'Buscar' })).toHaveFocus()
+    await screen.findByRole('link', { name: productLink(10) })
+    expect(heading).toHaveFocus()
+  })
+
+  it('abrir a URL com busca preenche o campo e mantém o termo na paginação', async () => {
+    renderRoute('/?q=Produto')
+    await screen.findByRole('link', { name: productLink(1) })
+
+    expect(screen.getByRole('searchbox', { name: 'Buscar' })).toHaveValue('Produto')
+    expect(screen.getByRole('link', { name: 'Página 2' })).toHaveAttribute(
+      'href',
+      '/?q=Produto&page=2',
+    )
+  })
+
+  it('busca sem resultado mostra o termo no vazio e o link para limpar a busca', async () => {
+    renderRoute('/?q=zzz')
+
+    expect(await screen.findByText('Nenhum produto encontrado para “zzz”.')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Limpar busca' })).toHaveAttribute('href', '/')
+  })
+
+  it('confirmar o campo vazio tira a busca', async () => {
+    const { router, user } = renderRoute('/?q=Produto')
+    await screen.findByRole('link', { name: productLink(1) })
+
+    await user.clear(screen.getByRole('searchbox', { name: 'Buscar' }))
+    await user.type(screen.getByRole('searchbox', { name: 'Buscar' }), '{Enter}')
+
+    expect(router.state.location.search).toBe('')
+    expect(await screen.findByRole('heading', { level: 1, name: 'Produtos' })).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Limpar busca' })).not.toBeInTheDocument()
+  })
+
+  it('confirmar o mesmo termo não navega de novo', async () => {
+    const { router, user } = renderRoute('/?q=Produto')
+    await screen.findByRole('link', { name: productLink(1) })
+    const key = router.state.location.key
+
+    await user.type(screen.getByRole('searchbox', { name: 'Buscar' }), '{Enter}')
+
+    expect(router.state.location.key).toBe(key)
+  })
+
+  it('busca só com espaços na URL conta como sem busca', async () => {
+    renderRoute('/?q=%20%20')
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Produtos' })).toBeInTheDocument()
+    expect(await screen.findByRole('link', { name: productLink(1) })).toBeInTheDocument()
+    expect(screen.getByRole('searchbox', { name: 'Buscar' })).toHaveValue('')
+  })
+
+  it('escolher uma categoria durante a busca limpa a busca', async () => {
+    const { router, user } = renderRoute('/?q=Produto&page=2')
+    await screen.findByRole('link', { name: productLink(13) })
+    await screen.findByRole('option', { name: 'Smartphones' })
+
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Categoria' }), 'Smartphones')
+
+    expect(router.state.location.search).toBe('?category=smartphones')
+    expect(await screen.findByRole('heading', { name: 'Smartphones' })).toBeInTheDocument()
+    expect(screen.getByRole('searchbox', { name: 'Buscar' })).toHaveValue('')
+  })
+
+  it('"Limpar busca" leva o foco para o título quando a lista chega', async () => {
+    const { router, user } = renderRoute('/?q=Produto')
+    await screen.findByRole('link', { name: productLink(1) })
+
+    await user.click(screen.getByRole('link', { name: 'Limpar busca' }))
+
+    expect(router.state.location.search).toBe('')
+    const heading = await screen.findByRole('heading', { level: 1, name: 'Produtos' })
+    await screen.findByRole('link', { name: productLink(2) })
+    expect(heading).toHaveFocus()
+  })
+
+  it('"Ver todos os produtos" no vazio da busca leva o foco para o título', async () => {
+    const { user } = renderRoute('/?q=zzz')
+    await screen.findByText('Nenhum produto encontrado para “zzz”.')
+
+    await user.click(screen.getByRole('link', { name: 'Ver todos os produtos' }))
+
+    await screen.findByRole('link', { name: productLink(1) })
+    expect(screen.getByRole('heading', { level: 1, name: 'Produtos' })).toHaveFocus()
+  })
+
+  it('busca com erro não rouba o foco do select de categoria depois', async () => {
+    server.use(
+      http.get(`${API_URL}/products/search`, () => new HttpResponse(null, { status: 500 })),
+    )
+    const { user } = renderRoute('/')
+    await screen.findByRole('link', { name: productLink(1) })
+    await screen.findByRole('option', { name: 'Smartphones' })
+    await user.type(screen.getByRole('searchbox', { name: 'Buscar' }), 'abc{Enter}')
+    await screen.findByText('Não foi possível carregar os produtos.')
+
+    const select = screen.getByRole('combobox', { name: 'Categoria' })
+    await user.selectOptions(select, 'Smartphones')
+
+    await screen.findByRole('link', { name: productLink(21) })
+    expect(select).toHaveFocus()
+  })
+
+  it('continuar digitando enquanto a busca carrega mantém o foco no campo', async () => {
+    server.use(searchProductsHandler({ delayMs: 100 }))
+    const { user } = renderRoute('/')
+    await screen.findByRole('link', { name: productLink(1) })
+
+    await user.type(screen.getByRole('searchbox', { name: 'Buscar' }), 'Produto 1{Enter}')
+    await user.type(screen.getByRole('searchbox', { name: 'Buscar' }), '0')
+
+    await screen.findByRole('link', { name: productLink(10) })
+    expect(screen.getByRole('searchbox', { name: 'Buscar' })).toHaveFocus()
+    expect(screen.getByRole('searchbox', { name: 'Buscar' })).toHaveValue('Produto 10')
+  })
+
+  it('erro na busca sem página dela em cache não mostra a paginação do catálogo geral', async () => {
+    server.use(
+      http.get(`${API_URL}/products/search`, () => new HttpResponse(null, { status: 500 })),
+    )
+    const { user } = renderRoute('/')
+    await screen.findByRole('link', { name: productLink(1) })
+
+    await user.type(screen.getByRole('searchbox', { name: 'Buscar' }), 'abc{Enter}')
+
+    await screen.findByText('Não foi possível carregar os produtos.')
+    expect(screen.queryByRole('navigation', { name: 'Paginação' })).not.toBeInTheDocument()
+  })
+
+  it('erro numa página nova da busca mantém a paginação da busca', async () => {
+    server.use(
+      http.get(`${API_URL}/products/search`, ({ request }) => {
+        if (new URL(request.url).searchParams.get('skip') !== '24') return undefined
+        return new HttpResponse(null, { status: 500 })
+      }),
+      searchProductsHandler(),
+    )
+    const { user } = renderRoute('/?q=Produto')
+    await screen.findByRole('link', { name: productLink(1) })
+
+    await user.click(screen.getByRole('link', { name: 'Página 3' }))
+
+    await screen.findByText('Não foi possível carregar os produtos.')
+    expect(
+      within(screen.getByRole('navigation', { name: 'Paginação' })).getByRole('link', {
+        name: 'Página 1',
+      }),
+    ).toHaveAttribute('href', '/?q=Produto')
+  })
+
+  it('busca com página além do fim vai para a última página da busca', async () => {
+    const { router } = renderRoute('/?q=Produto&page=99')
+
+    await screen.findByRole('link', { name: productLink(25) })
+    expect(router.state.location.search).toBe('?q=Produto&page=3')
+  })
+
+  it('o que foi digitado e não confirmado continua no campo ao paginar', async () => {
+    const { user } = renderRoute('/?q=Produto')
+    await screen.findByRole('link', { name: productLink(1) })
+
+    await user.type(screen.getByRole('searchbox', { name: 'Buscar' }), ' x')
+    await user.click(screen.getByRole('link', { name: 'Página 2' }))
+
+    await screen.findByRole('link', { name: productLink(13) })
+    expect(screen.getByRole('searchbox', { name: 'Buscar' })).toHaveValue('Produto x')
+  })
+
+  it('buscar de novo um termo já em cache leva o foco para o título', async () => {
+    const { user } = renderRoute('/')
+    await screen.findByRole('link', { name: productLink(1) })
+    const searchbox = () => screen.getByRole('searchbox', { name: 'Buscar' })
+    await user.type(searchbox(), 'Produto 1{Enter}')
+    await screen.findByRole('link', { name: productLink(10) })
+    await user.clear(searchbox())
+    await user.type(searchbox(), 'Produto 2{Enter}')
+    await screen.findByRole('link', { name: productLink(20) })
+
+    await user.clear(searchbox())
+    await user.type(searchbox(), 'Produto 1{Enter}')
+
+    const heading = await screen.findByRole('heading', {
+      level: 1,
+      name: 'Resultados para “Produto 1”',
+    })
+    await screen.findByRole('link', { name: productLink(10) })
+    expect(heading).toHaveFocus()
+  })
+
+  it('busca e categoria juntas na URL: a busca vence', async () => {
+    renderRoute('/?q=Produto%201&category=smartphones')
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Resultados para “Produto 1”' }),
+    ).toBeInTheDocument()
+    await screen.findByRole('link', { name: productLink(10) })
+    expect(screen.queryByRole('link', { name: productLink(21) })).not.toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: 'Categoria' })).toHaveValue('')
   })
 
   it('os links da paginação mantêm a categoria', async () => {
