@@ -6,10 +6,12 @@ const buttonClass = 'rounded-md bg-slate-900 px-4 py-2 font-medium text-white ho
 
 export function SearchForm({
   value,
+  clearHref,
   onSearch,
   onEdit,
 }: {
   value: string | null
+  clearHref: string
   onSearch: (term: string | null) => void
   onEdit: () => void
 }) {
@@ -49,7 +51,7 @@ export function SearchForm({
       </button>
       {value && (
         <Link
-          to="/"
+          to={clearHref}
           onClick={(event) => {
             if (isModifiedClick(event)) return
             event.preventDefault()

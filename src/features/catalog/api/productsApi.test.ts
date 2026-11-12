@@ -15,7 +15,7 @@ describe('fetchProducts', () => {
       }),
     )
 
-    const page = await fetchProducts({ page: 3, category: null, search: null })
+    const page = await fetchProducts({ page: 3, category: null, search: null, sort: null })
 
     expect(requestedUrl?.searchParams.get('limit')).toBe('12')
     expect(requestedUrl?.searchParams.get('skip')).toBe('24')
@@ -32,7 +32,7 @@ describe('fetchProducts', () => {
       }),
     )
 
-    await fetchProducts({ page: 1, category: 'smartphones', search: null })
+    await fetchProducts({ page: 1, category: 'smartphones', search: null, sort: null })
 
     expect(requestedSlug).toBe('smartphones')
   })
@@ -46,11 +46,41 @@ describe('fetchProducts', () => {
       }),
     )
 
-    await fetchProducts({ page: 2, category: null, search: 'a&b' })
+    await fetchProducts({ page: 2, category: null, search: 'a&b', sort: null })
 
     expect(requestedUrl?.searchParams.get('q')).toBe('a&b')
     expect(requestedUrl?.searchParams.get('limit')).toBe('12')
     expect(requestedUrl?.searchParams.get('skip')).toBe('12')
+  })
+
+  it('manda sortBy e order quando há ordenação', async () => {
+    let requestedUrl: URL | undefined
+    server.use(
+      http.get(`${API_URL}/products`, ({ request }) => {
+        requestedUrl = new URL(request.url)
+        return HttpResponse.json(makeProductListDto([]))
+      }),
+    )
+
+    await fetchProducts({ page: 1, category: null, search: null, sort: 'price-desc' })
+
+    expect(requestedUrl?.searchParams.get('sortBy')).toBe('price')
+    expect(requestedUrl?.searchParams.get('order')).toBe('desc')
+  })
+
+  it('sem ordenação não manda sortBy nem order', async () => {
+    let requestedUrl: URL | undefined
+    server.use(
+      http.get(`${API_URL}/products/search`, ({ request }) => {
+        requestedUrl = new URL(request.url)
+        return HttpResponse.json(makeProductListDto([]))
+      }),
+    )
+
+    await fetchProducts({ page: 1, category: null, search: 'phone', sort: null })
+
+    expect(requestedUrl?.searchParams.has('sortBy')).toBe(false)
+    expect(requestedUrl?.searchParams.has('order')).toBe(false)
   })
 })
 

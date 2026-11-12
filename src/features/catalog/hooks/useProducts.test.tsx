@@ -16,12 +16,12 @@ describe('useProducts', () => {
   it('mantém a página anterior enquanto a próxima carrega', async () => {
     server.use(productListHandler())
     const { result, rerender } = renderHook((params: ProductListParams) => useProducts(params), {
-      initialProps: { page: 1, category: null, search: null },
+      initialProps: { page: 1, category: null, search: null, sort: null },
       wrapper: queryWrapper(createTestQueryClient()),
     })
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
-    rerender({ page: 3, category: null, search: null })
+    rerender({ page: 3, category: null, search: null, sort: null })
 
     expect(result.current.data?.page).toBe(1)
     expect(result.current.isPlaceholderData).toBe(true)
@@ -32,12 +32,12 @@ describe('useProducts', () => {
   it('trocar de categoria não reaproveita a lista da categoria anterior', async () => {
     server.use(productListHandler(), categoryProductsHandler({ delayMs: 50 }))
     const { result, rerender } = renderHook((params: ProductListParams) => useProducts(params), {
-      initialProps: { page: 1, category: null, search: null } as ProductListParams,
+      initialProps: { page: 1, category: null, search: null, sort: null } as ProductListParams,
       wrapper: queryWrapper(createTestQueryClient()),
     })
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
-    rerender({ page: 1, category: 'smartphones', search: null })
+    rerender({ page: 1, category: 'smartphones', search: null, sort: null })
 
     expect(result.current.data).toBeUndefined()
     expect(result.current.isPending).toBe(true)
@@ -47,16 +47,52 @@ describe('useProducts', () => {
   it('trocar o termo de busca não reaproveita a lista anterior', async () => {
     server.use(productListHandler(), searchProductsHandler({ delayMs: 50 }))
     const { result, rerender } = renderHook((params: ProductListParams) => useProducts(params), {
-      initialProps: { page: 1, category: null, search: null } as ProductListParams,
+      initialProps: { page: 1, category: null, search: null, sort: null } as ProductListParams,
       wrapper: queryWrapper(createTestQueryClient()),
     })
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
-    rerender({ page: 1, category: null, search: 'Produto 1' })
+    rerender({ page: 1, category: null, search: 'Produto 1', sort: null })
 
     expect(result.current.data).toBeUndefined()
     expect(result.current.isPending).toBe(true)
     await waitFor(() => expect(result.current.data?.total).toBe(11))
+  })
+
+  it('trocar a ordenação não reaproveita a lista anterior', async () => {
+    const requested: URL[] = []
+    server.use(productListHandler({ delayMs: 50, onRequest: (url) => requested.push(url) }))
+    const { result, rerender } = renderHook((params: ProductListParams) => useProducts(params), {
+      initialProps: { page: 1, category: null, search: null, sort: null } as ProductListParams,
+      wrapper: queryWrapper(createTestQueryClient()),
+    })
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+    rerender({ page: 1, category: null, search: null, sort: 'price-asc' })
+
+    expect(result.current.data).toBeUndefined()
+    expect(result.current.isPending).toBe(true)
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(requested.at(-1)?.searchParams.get('sortBy')).toBe('price')
+  })
+
+  it('pré-busca a próxima página da mesma ordenação', async () => {
+    server.use(productListHandler())
+    const queryClient = createTestQueryClient()
+
+    const { result } = renderHook(
+      () => useProducts({ page: 1, category: null, search: null, sort: 'price-asc' }),
+      { wrapper: queryWrapper(queryClient) },
+    )
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    await waitFor(() =>
+      expect(
+        queryClient.getQueryData(
+          productKeys.list({ page: 2, category: null, search: null, sort: 'price-asc' }),
+        ),
+      ).toBeDefined(),
+    )
   })
 
   it('pré-busca a próxima página da mesma busca', async () => {
@@ -64,14 +100,16 @@ describe('useProducts', () => {
     const queryClient = createTestQueryClient()
 
     const { result } = renderHook(
-      () => useProducts({ page: 1, category: null, search: 'Produto' }),
+      () => useProducts({ page: 1, category: null, search: 'Produto', sort: null }),
       { wrapper: queryWrapper(queryClient) },
     )
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
     await waitFor(() =>
       expect(
-        queryClient.getQueryData(productKeys.list({ page: 2, category: null, search: 'Produto' })),
+        queryClient.getQueryData(
+          productKeys.list({ page: 2, category: null, search: 'Produto', sort: null }),
+        ),
       ).toBeDefined(),
     )
   })
@@ -86,7 +124,7 @@ describe('useProducts', () => {
       }),
     )
     const wrapper = queryWrapper(createTestQueryClient())
-    const params: ProductListParams = { page: 1, category: null, search: null }
+    const params: ProductListParams = { page: 1, category: null, search: null, sort: null }
 
     const first = renderHook(() => useProducts(params), { wrapper })
     await waitFor(() => expect(first.result.current.isSuccess).toBe(true))
@@ -104,14 +142,19 @@ describe('useProducts', () => {
     server.use(productListHandler())
     const queryClient = createTestQueryClient()
 
-    const { result } = renderHook(() => useProducts({ page: 1, category: null, search: null }), {
-      wrapper: queryWrapper(queryClient),
-    })
+    const { result } = renderHook(
+      () => useProducts({ page: 1, category: null, search: null, sort: null }),
+      {
+        wrapper: queryWrapper(queryClient),
+      },
+    )
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
     await waitFor(() =>
       expect(
-        queryClient.getQueryData(productKeys.list({ page: 2, category: null, search: null })),
+        queryClient.getQueryData(
+          productKeys.list({ page: 2, category: null, search: null, sort: null }),
+        ),
       ).toBeDefined(),
     )
   })
@@ -124,9 +167,12 @@ describe('useProducts', () => {
       }),
     )
 
-    const { result } = renderHook(() => useProducts({ page: 3, category: null, search: null }), {
-      wrapper: queryWrapper(createTestQueryClient()),
-    })
+    const { result } = renderHook(
+      () => useProducts({ page: 3, category: null, search: null, sort: null }),
+      {
+        wrapper: queryWrapper(createTestQueryClient()),
+      },
+    )
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
     await new Promise((resolve) => setTimeout(resolve, 50))

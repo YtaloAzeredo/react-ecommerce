@@ -24,8 +24,13 @@ export interface Category {
   name: string
 }
 
+export const productSorts = ['price-asc', 'price-desc', 'title-asc'] as const
+
+export type ProductSort = (typeof productSorts)[number]
+
 export interface ProductListParams {
   page: number
   category: string | null
   search: string | null
+  sort: ProductSort | null
 }

@@ -7,6 +7,7 @@ import { StatusMessage } from '@/shared/ui/StatusMessage'
 import { CategoryFilter } from '../components/CategoryFilter'
 import { ProductGrid } from '../components/ProductGrid'
 import { SearchForm } from '../components/SearchForm'
+import { SortSelect } from '../components/SortSelect'
 import { useCatalogParams } from '../hooks/useCatalogParams'
 import { useCategories } from '../hooks/useCategories'
 import { useProducts } from '../hooks/useProducts'
@@ -16,10 +17,10 @@ const buttonClass =
   'rounded-md bg-slate-900 px-4 py-2 font-medium text-white hover:bg-slate-700 aria-disabled:cursor-not-allowed aria-disabled:opacity-60'
 
 export function CatalogPage() {
-  const { page, category, search, hrefFor } = useCatalogParams()
+  const { page, category, search, sort, hrefFor } = useCatalogParams()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const products = useProducts({ page, category, search })
+  const products = useProducts({ page, category, search, sort })
   const categories = useCategories()
   const headingRef = useRef<HTMLHeadingElement>(null)
   const categorySelectRef = useRef<HTMLSelectElement>(null)
@@ -59,6 +60,7 @@ export function CatalogPage() {
     <section className="flex flex-col gap-6">
       <SearchForm
         value={search}
+        clearHref={hrefFor({ search: null })}
         onSearch={(term) => {
           focusTitleWhenLoaded.current = true
           navigate(hrefFor({ search: term }))
@@ -71,12 +73,15 @@ export function CatalogPage() {
         <h1 ref={headingRef} tabIndex={-1} className="text-2xl font-bold focus:outline-none">
           {title}
         </h1>
-        <CategoryFilter
-          ref={categorySelectRef}
-          categories={categories.data ?? []}
-          value={category}
-          onChange={(slug) => navigate(hrefFor({ category: slug }))}
-        />
+        <div className="flex flex-wrap items-center gap-4">
+          <CategoryFilter
+            ref={categorySelectRef}
+            categories={categories.data ?? []}
+            value={category}
+            onChange={(slug) => navigate(hrefFor({ category: slug }))}
+          />
+          <SortSelect value={sort} onChange={(next) => navigate(hrefFor({ sort: next }))} />
+        </div>
       </div>
 
       {categories.isError && !categories.data && (

@@ -25,7 +25,7 @@ describe('useProduct', () => {
     respondWithProduct('Completo')
     const queryClient = createTestQueryClient()
     queryClient.setQueryData(
-      productKeys.list({ page: 1, category: null, search: null }),
+      productKeys.list({ page: 1, category: null, search: null, sort: null }),
       toProductPage(makeProductListDto([makeProductDto({ id: 5, title: 'Da lista' })]), 1, 12),
     )
 

@@ -208,7 +208,7 @@ describe('CatalogPage', () => {
   it('erro ao atualizar uma lista que já está na tela mantém a lista e avisa', async () => {
     const queryClient = createTestQueryClient()
     queryClient.setQueryData(
-      productKeys.list({ page: 1, category: null, search: null }),
+      productKeys.list({ page: 1, category: null, search: null, sort: null }),
       toProductPage(makeProductListDto(catalogProducts.slice(0, 12), 30), 1, 12),
       { updatedAt: Date.now() - 10 * 60_000 },
     )
@@ -224,7 +224,7 @@ describe('CatalogPage', () => {
   it('atualizar a lista de novo com sucesso leva o foco para o título', async () => {
     const queryClient = createTestQueryClient()
     queryClient.setQueryData(
-      productKeys.list({ page: 1, category: null, search: null }),
+      productKeys.list({ page: 1, category: null, search: null, sort: null }),
       toProductPage(makeProductListDto(catalogProducts.slice(0, 12), 30), 1, 12),
       { updatedAt: Date.now() - 10 * 60_000 },
     )
@@ -250,7 +250,7 @@ describe('CatalogPage', () => {
   it('tentar atualizar a lista de novo avisa que está tentando e volta ao erro se falhar', async () => {
     const queryClient = createTestQueryClient()
     queryClient.setQueryData(
-      productKeys.list({ page: 1, category: null, search: null }),
+      productKeys.list({ page: 1, category: null, search: null, sort: null }),
       toProductPage(makeProductListDto(catalogProducts.slice(0, 12), 30), 1, 12),
       { updatedAt: Date.now() - 10 * 60_000 },
     )
@@ -645,6 +645,124 @@ describe('CatalogPage', () => {
     await screen.findByRole('link', { name: productLink(10) })
     expect(screen.queryByRole('link', { name: productLink(21) })).not.toBeInTheDocument()
     expect(screen.getByRole('combobox', { name: 'Categoria' })).toHaveValue('')
+  })
+
+  it('ordenar por menor preço leva o sort para a URL, volta à página 1 e mostra a lista ordenada', async () => {
+    const products = catalogProducts.map((product, index) => ({ ...product, price: 30 - index }))
+    server.use(productListHandler({ products, delayMs: 50 }))
+    const { router, user } = renderRoute('/?page=2')
+    await screen.findByRole('link', { name: productLink(13) })
+
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Ordenar por' }), 'Menor preço')
+
+    expect(router.state.location.search).toBe('?sort=price-asc')
+    expect(inPage().getByRole('status')).toHaveTextContent('Carregando produtos…')
+    await screen.findByRole('link', { name: productLink(30) })
+    const links = inPage().getAllByRole('link', { name: /^Produto \d+ / })
+    expect(links[0]).toHaveAccessibleName(productLink(30))
+    expect(links[11]).toHaveAccessibleName(productLink(19))
+    expect(links).toHaveLength(12)
+    expect(screen.getByRole('link', { name: 'Página 1' })).toHaveAttribute('aria-current', 'page')
+  })
+
+  it('abrir a URL com ordenação seleciona a opção e mantém o sort na paginação', async () => {
+    renderRoute('/?sort=price-desc')
+    await screen.findByRole('link', { name: productLink(1) })
+
+    expect(screen.getByRole('combobox', { name: 'Ordenar por' })).toHaveValue('price-desc')
+    expect(screen.getByRole('link', { name: 'Página 2' })).toHaveAttribute(
+      'href',
+      '/?sort=price-desc&page=2',
+    )
+  })
+
+  it('ordenação desconhecida na URL conta como padrão e não é enviada à API', async () => {
+    const requested: URL[] = []
+    server.use(productListHandler({ onRequest: (url) => requested.push(url) }))
+    const { router } = renderRoute('/?sort=rating-desc')
+    await screen.findByRole('link', { name: productLink(1) })
+
+    expect(screen.getByRole('combobox', { name: 'Ordenar por' })).toHaveValue('')
+    expect(requested.length).toBeGreaterThan(0)
+    expect(requested.every((url) => !url.searchParams.has('sortBy'))).toBe(true)
+    expect(router.state.location.search).toBe('?sort=rating-desc')
+  })
+
+  it('trocar a categoria e buscar mantêm a ordenação', async () => {
+    const { router, user } = renderRoute('/?sort=price-asc')
+    await screen.findByRole('option', { name: 'Smartphones' })
+
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Categoria' }), 'Smartphones')
+    expect(router.state.location.search).toBe('?category=smartphones&sort=price-asc')
+
+    await user.type(screen.getByRole('searchbox', { name: 'Buscar' }), 'Produto 1{Enter}')
+    expect(router.state.location.search).toBe('?q=Produto+1&sort=price-asc')
+    expect(screen.getByRole('combobox', { name: 'Ordenar por' })).toHaveValue('price-asc')
+  })
+
+  it('"Padrão" tira a ordenação da URL', async () => {
+    const { router, user } = renderRoute('/?sort=price-asc&page=2')
+    await screen.findByRole('link', { name: productLink(13) })
+
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Ordenar por' }), 'Padrão')
+
+    expect(router.state.location.search).toBe('')
+  })
+
+  it('navegar com o teclado no select de ordenação só navega ao confirmar com Enter', async () => {
+    const { router } = renderRoute('/')
+    await screen.findByRole('link', { name: productLink(1) })
+    const select = screen.getByRole('combobox', { name: 'Ordenar por' })
+    act(() => select.focus())
+
+    fireEvent.keyDown(select, { key: 'ArrowDown' })
+    fireEvent.change(select, { target: { value: 'price-asc' } })
+
+    expect(select).toHaveValue('price-asc')
+    expect(router.state.location.search).toBe('')
+
+    fireEvent.keyDown(select, { key: 'Enter' })
+
+    expect(router.state.location.search).toBe('?sort=price-asc')
+  })
+
+  it('ordenação com página além do fim vai para a última página mantendo a ordenação', async () => {
+    const { router } = renderRoute('/?sort=price-asc&page=99')
+
+    await waitFor(() => expect(router.state.location.search).toBe('?sort=price-asc&page=3'))
+    expect(router.state.historyAction).toBe('REPLACE')
+  })
+
+  it('"Limpar busca" mantém a ordenação, no link e no clique', async () => {
+    const { router, user } = renderRoute('/?q=Produto&sort=price-asc')
+    await screen.findByRole('link', { name: productLink(1) })
+
+    const clear = screen.getByRole('link', { name: 'Limpar busca' })
+    expect(clear).toHaveAttribute('href', '/?sort=price-asc')
+    await user.click(clear)
+
+    expect(router.state.location.search).toBe('?sort=price-asc')
+    expect(screen.getByRole('combobox', { name: 'Ordenar por' })).toHaveValue('price-asc')
+  })
+
+  it('erro ao ordenar mantém a paginação conhecida de qualquer ordenação', async () => {
+    const { user } = renderRoute('/')
+    await screen.findByRole('link', { name: productLink(1) })
+    server.use(
+      http.get(`${API_URL}/products`, ({ request }) =>
+        new URL(request.url).searchParams.has('sortBy')
+          ? HttpResponse.json({ message: 'erro' }, { status: 500 })
+          : undefined,
+      ),
+    )
+
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Ordenar por' }), 'Menor preço')
+
+    expect(await screen.findByText('Não foi possível carregar os produtos.')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Página 2' })).toHaveAttribute(
+      'href',
+      '/?sort=price-asc&page=2',
+    )
   })
 
   it('os links da paginação mantêm a categoria', async () => {

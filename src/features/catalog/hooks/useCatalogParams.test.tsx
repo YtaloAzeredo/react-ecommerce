@@ -71,4 +71,39 @@ describe('useCatalogParams', () => {
   it('termo com caracteres especiais vai codificado', () => {
     expect(renderAt('/').hrefFor({ search: 'a&b c' })).toBe('/?q=a%26b+c')
   })
+
+  it('lê a ordenação da URL e ignora valor desconhecido', () => {
+    expect(renderAt('/?sort=price-asc').sort).toBe('price-asc')
+    expect(renderAt('/?sort=rating-desc').sort).toBeNull()
+    expect(renderAt('/').sort).toBeNull()
+  })
+
+  it('trocar a ordenação volta para a página 1 e mantém categoria e busca', () => {
+    expect(renderAt('/?category=beauty&page=3').hrefFor({ sort: 'price-desc' })).toBe(
+      '/?category=beauty&sort=price-desc',
+    )
+    expect(renderAt('/?q=phone&page=2').hrefFor({ sort: 'title-asc' })).toBe(
+      '/?q=phone&sort=title-asc',
+    )
+  })
+
+  it('a mesma ordenação mantém a página', () => {
+    expect(renderAt('/?sort=price-asc&page=2').hrefFor({ sort: 'price-asc' })).toBe(
+      '/?sort=price-asc&page=2',
+    )
+  })
+
+  it('ordenação padrão tira o sort da URL', () => {
+    expect(renderAt('/?sort=price-asc&page=2').hrefFor({ sort: null })).toBe('/')
+  })
+
+  it('mudar de página, de categoria ou de busca mantém a ordenação', () => {
+    expect(renderAt('/?sort=price-asc').hrefFor({ page: 2 })).toBe('/?sort=price-asc&page=2')
+    expect(renderAt('/?sort=price-asc&page=2').hrefFor({ category: 'beauty' })).toBe(
+      '/?category=beauty&sort=price-asc',
+    )
+    expect(renderAt('/?category=beauty&sort=price-asc').hrefFor({ search: 'phone' })).toBe(
+      '/?q=phone&sort=price-asc',
+    )
+  })
 })

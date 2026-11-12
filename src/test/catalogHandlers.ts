@@ -18,12 +18,23 @@ type ListOptions = {
   delayMs?: number
 }
 
+function sortProducts(products: ProductDto[], url: URL): ProductDto[] {
+  const sortBy = url.searchParams.get('sortBy')
+  const direction = url.searchParams.get('order') === 'desc' ? -1 : 1
+  if (sortBy === 'price') return products.toSorted((a, b) => (a.price - b.price) * direction)
+  if (sortBy === 'title') {
+    return products.toSorted((a, b) => a.title.localeCompare(b.title) * direction)
+  }
+  return products
+}
+
 function paginate(products: ProductDto[], url: URL) {
   const limit = Number(url.searchParams.get('limit') ?? products.length)
   const skip = Number(url.searchParams.get('skip') ?? 0)
+  const sorted = sortProducts(products, url)
   return HttpResponse.json({
-    products: products.slice(skip, skip + limit),
-    total: products.length,
+    products: sorted.slice(skip, skip + limit),
+    total: sorted.length,
     skip,
     limit,
   })
