@@ -5,6 +5,7 @@ import {
   productListHandler,
   searchProductsHandler,
 } from '@/test/catalogHandlers'
+import { makeProductDto } from '@/test/fixtures'
 import { createTestQueryClient } from '@/test/queryClient'
 import { queryWrapper } from '@/test/queryWrapper'
 import { server } from '@/test/server'
@@ -157,6 +158,32 @@ describe('useProducts', () => {
         ),
       ).toBeDefined(),
     )
+  })
+
+  it('não pré-busca a partir do placeholder enquanto a página pedida carrega', async () => {
+    const products = Array.from({ length: 60 }, (_, index) => makeProductDto({ id: index + 1 }))
+    const requestedSkips: string[] = []
+    server.use(
+      productListHandler({
+        products,
+        delayMs: 50,
+        onRequest: (url) => requestedSkips.push(url.searchParams.get('skip')!),
+      }),
+    )
+    const { result, rerender } = renderHook((params: ProductListParams) => useProducts(params), {
+      initialProps: { page: 1, category: null, search: null, sort: null } as ProductListParams,
+      wrapper: queryWrapper(createTestQueryClient()),
+    })
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    await waitFor(() => expect(requestedSkips).toContain('12'))
+
+    rerender({ page: 3, category: null, search: null, sort: null })
+
+    await waitFor(() => expect(requestedSkips).toContain('24'))
+    expect(result.current.isPlaceholderData).toBe(true)
+    expect(requestedSkips).not.toContain('36')
+    await waitFor(() => expect(result.current.data?.page).toBe(3))
+    await waitFor(() => expect(requestedSkips).toContain('36'))
   })
 
   it('não pré-busca depois da última página', async () => {

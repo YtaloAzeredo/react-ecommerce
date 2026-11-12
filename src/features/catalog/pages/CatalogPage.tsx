@@ -1,6 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef, useState } from 'react'
-import { Link, Navigate, useNavigate } from 'react-router'
+import { Link, Navigate, useLocation, useNavigate } from 'react-router'
 import { isModifiedClick } from '@/shared/lib/isModifiedClick'
 import { Pagination } from '@/shared/ui/Pagination'
 import { StatusMessage } from '@/shared/ui/StatusMessage'
@@ -11,6 +11,7 @@ import { SortSelect } from '../components/SortSelect'
 import { useCatalogParams } from '../hooks/useCatalogParams'
 import { useCategories } from '../hooks/useCategories'
 import { useProducts } from '../hooks/useProducts'
+import { sortLabels } from '../model/sortLabels'
 import { findKnownTotalPages } from '../queries'
 
 const buttonClass =
@@ -19,6 +20,7 @@ const buttonClass =
 export function CatalogPage() {
   const { page, category, search, sort, hrefFor } = useCatalogParams()
   const navigate = useNavigate()
+  const location = useLocation()
   const queryClient = useQueryClient()
   const products = useProducts({ page, category, search, sort })
   const categories = useCategories()
@@ -26,6 +28,9 @@ export function CatalogPage() {
   const categorySelectRef = useRef<HTMLSelectElement>(null)
   const [retrying, setRetrying] = useState(false)
   const focusTitleWhenLoaded = useRef(false)
+  const [pendingChoice, setPendingChoice] = useState<{ from: string; to: string } | null>(null)
+  const [announced, setAnnounced] = useState<{ href: string; text: string } | null>(null)
+  const currentHref = location.pathname + location.search
   const loaded = products.isSuccess && !products.isPlaceholderData
 
   useEffect(() => {
@@ -35,6 +40,32 @@ export function CatalogPage() {
   }, [loaded, products.isError, search, category])
 
   const categoryName = categories.data?.find((item) => item.slug === category)?.name
+  const total = products.data?.total ?? 0
+  const scope = search
+    ? `para “${search}”`
+    : category
+      ? `em ${categoryName ?? category}`
+      : 'em todas as categorias'
+  const summary = `${total} ${total === 1 ? 'produto' : 'produtos'} ${scope}${sort ? `, ${sortLabels[sort].description}` : ''}.`
+
+  if (pendingChoice && currentHref === pendingChoice.to && (loaded || products.isError)) {
+    setPendingChoice(null)
+    if (loaded && total > 0) setAnnounced({ href: currentHref, text: summary })
+  } else if (
+    pendingChoice &&
+    currentHref !== pendingChoice.from &&
+    currentHref !== pendingChoice.to
+  ) {
+    setPendingChoice(null)
+  }
+  const announcement = announced?.href === currentHref ? announced.text : ''
+
+  function choose(href: string) {
+    setPendingChoice({ from: currentHref, to: href })
+    setAnnounced(null)
+    navigate(href)
+  }
+
   const title = search
     ? `Resultados para “${search}”`
     : category
@@ -78,11 +109,14 @@ export function CatalogPage() {
             ref={categorySelectRef}
             categories={categories.data ?? []}
             value={category}
-            onChange={(slug) => navigate(hrefFor({ category: slug }))}
+            onChange={(slug) => choose(hrefFor({ category: slug }))}
           />
-          <SortSelect value={sort} onChange={(next) => navigate(hrefFor({ sort: next }))} />
+          <SortSelect value={sort} onChange={(next) => choose(hrefFor({ sort: next }))} />
         </div>
       </div>
+      <p role="status" className="sr-only">
+        {announcement}
+      </p>
 
       {categories.isError && !categories.data && (
         <p role="alert" className="flex flex-wrap items-center gap-2 text-sm text-red-700">

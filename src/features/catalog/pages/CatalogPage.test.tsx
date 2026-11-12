@@ -35,7 +35,9 @@ describe('CatalogPage', () => {
   it('mostra os produtos da página pedida na URL', async () => {
     renderRoute('/?page=2')
 
-    expect(inPage().getByRole('status')).toHaveTextContent('Carregando produtos…')
+    expect(
+      inPage().getByText('Carregando produtos…').closest('[role="status"]'),
+    ).toBeInTheDocument()
     expect(await screen.findByRole('link', { name: productLink(13) })).toHaveAttribute(
       'href',
       '/products/13',
@@ -78,7 +80,9 @@ describe('CatalogPage', () => {
     await user.click(screen.getByRole('link', { name: 'Ver todos os produtos' }))
 
     expect(screen.queryByText('Nenhum produto encontrado.')).not.toBeInTheDocument()
-    expect(inPage().getByRole('status')).toHaveTextContent('Carregando produtos…')
+    expect(
+      inPage().getByText('Carregando produtos…').closest('[role="status"]'),
+    ).toBeInTheDocument()
     expect(await screen.findByRole('link', { name: productLink(1) })).toBeInTheDocument()
   })
 
@@ -656,7 +660,9 @@ describe('CatalogPage', () => {
     await user.selectOptions(screen.getByRole('combobox', { name: 'Ordenar por' }), 'Menor preço')
 
     expect(router.state.location.search).toBe('?sort=price-asc')
-    expect(inPage().getByRole('status')).toHaveTextContent('Carregando produtos…')
+    expect(
+      inPage().getByText('Carregando produtos…').closest('[role="status"]'),
+    ).toBeInTheDocument()
     await screen.findByRole('link', { name: productLink(30) })
     const links = inPage().getAllByRole('link', { name: /^Produto \d+ / })
     expect(links[0]).toHaveAccessibleName(productLink(30))
@@ -765,6 +771,129 @@ describe('CatalogPage', () => {
     )
   })
 
+  it('trocar a categoria anuncia a lista nova para leitores de tela', async () => {
+    const { user } = renderRoute('/')
+    await screen.findByRole('option', { name: 'Smartphones' })
+
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Categoria' }), 'Smartphones')
+
+    const announcement = await inPage().findByText('10 produtos em Smartphones.')
+    expect(announcement).toHaveAttribute('role', 'status')
+    expect(screen.getByRole('combobox', { name: 'Categoria' })).toHaveFocus()
+  })
+
+  it('trocar a ordenação anuncia a ordem nova para leitores de tela', async () => {
+    const { user } = renderRoute('/?q=Produto+1')
+    await screen.findByRole('link', { name: productLink(1) })
+
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Ordenar por' }), 'Menor preço')
+
+    expect(
+      await inPage().findByText('11 produtos para “Produto 1”, do menor para o maior preço.'),
+    ).toHaveAttribute('role', 'status')
+  })
+
+  it('voltar para uma lista já em cache anuncia na hora', async () => {
+    const { user } = renderRoute('/')
+    await screen.findByRole('option', { name: 'Smartphones' })
+    const select = screen.getByRole('combobox', { name: 'Categoria' })
+    await user.selectOptions(select, 'Smartphones')
+    await inPage().findByText('10 produtos em Smartphones.')
+
+    await user.selectOptions(select, 'Todas')
+
+    expect(inPage().getByText('30 produtos em todas as categorias.')).toHaveAttribute(
+      'role',
+      'status',
+    )
+  })
+
+  it('o anúncio some ao sair da lista anunciada e a mesma lista é anunciada de novo', async () => {
+    const { user } = renderRoute('/')
+    await screen.findByRole('option', { name: 'Smartphones' })
+    const select = screen.getByRole('combobox', { name: 'Categoria' })
+    await user.selectOptions(select, 'Smartphones')
+    await inPage().findByText('10 produtos em Smartphones.')
+
+    await user.type(screen.getByRole('searchbox', { name: 'Buscar' }), 'Produto 1{Enter}')
+    await screen.findByRole('heading', { level: 1, name: 'Resultados para “Produto 1”' })
+    expect(inPage().queryByText(/produtos em/)).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('link', { name: 'Limpar busca' }))
+    await screen.findByRole('heading', { level: 1, name: 'Produtos' })
+    await user.selectOptions(select, 'Smartphones')
+
+    expect(await inPage().findByText('10 produtos em Smartphones.')).toBeInTheDocument()
+  })
+
+  it('tentar de novo depois de um erro ao trocar a categoria não anuncia', async () => {
+    let failures = 1
+    server.use(
+      http.get(`${API_URL}/products/category/smartphones`, () => {
+        if (failures-- > 0) return HttpResponse.json({ message: 'erro' }, { status: 500 })
+        return undefined
+      }),
+    )
+    const { user } = renderRoute('/')
+    await screen.findByRole('option', { name: 'Smartphones' })
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Categoria' }), 'Smartphones')
+    await screen.findByText('Não foi possível carregar os produtos.')
+
+    await user.click(screen.getByRole('button', { name: 'Tentar novamente' }))
+
+    await screen.findByRole('link', { name: productLink(21) })
+    expect(inPage().queryByText(/produtos em/)).not.toBeInTheDocument()
+  })
+
+  it('trocar para uma categoria sem produtos não anuncia', async () => {
+    server.use(
+      categoryProductsHandler({
+        products: catalogProducts.filter((product) => product.category === 'beauty'),
+      }),
+    )
+    const { user } = renderRoute('/')
+    await screen.findByRole('option', { name: 'Smartphones' })
+
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Categoria' }), 'Smartphones')
+
+    await screen.findByText('Nenhum produto encontrado.')
+    expect(inPage().queryByText(/produtos? em/)).not.toBeInTheDocument()
+  })
+
+  it('anuncia no singular quando há um produto', async () => {
+    server.use(
+      categoryProductsHandler({ products: [makeProductDto({ id: 21, category: 'smartphones' })] }),
+    )
+    const { user } = renderRoute('/')
+    await screen.findByRole('option', { name: 'Smartphones' })
+
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Categoria' }), 'Smartphones')
+
+    expect(await inPage().findByText('1 produto em Smartphones.')).toBeInTheDocument()
+  })
+
+  it('escolha abandonada antes da lista chegar não anuncia depois', async () => {
+    server.use(categoryProductsHandler({ delayMs: 100 }))
+    const { router, user } = renderRoute('/')
+    await screen.findByRole('option', { name: 'Smartphones' })
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Categoria' }), 'Smartphones')
+
+    await user.type(screen.getByRole('searchbox', { name: 'Buscar' }), 'Produto 1{Enter}')
+    await screen.findByRole('heading', { level: 1, name: 'Resultados para “Produto 1”' })
+    await act(() => router.navigate('/?category=smartphones'))
+
+    await screen.findByRole('link', { name: productLink(21) })
+    await act(() => new Promise<void>((resolve) => setTimeout(resolve, 0)))
+    expect(inPage().queryByText(/produtos em/)).not.toBeInTheDocument()
+  })
+
+  it('abrir a URL com categoria e ordenação não anuncia nada', async () => {
+    renderRoute('/?category=smartphones&sort=price-asc')
+    await screen.findByRole('link', { name: productLink(21) })
+
+    expect(inPage().queryByText(/produtos em/)).not.toBeInTheDocument()
+  })
+
   it('os links da paginação mantêm a categoria', async () => {
     renderRoute('/?category=beauty')
     await screen.findByRole('link', { name: productLink(1) })
@@ -796,7 +925,7 @@ describe('CatalogPage', () => {
 
     expect(router.state.location.search).toBe('?page=2')
     expect(screen.getByRole('link', { name: productLink(13) })).toBeInTheDocument()
-    expect(inPage().queryByRole('status')).not.toBeInTheDocument()
+    expect(inPage().queryByText('Carregando produtos…')).not.toBeInTheDocument()
     expect(pageTwoRequests).toBe(1)
   })
 

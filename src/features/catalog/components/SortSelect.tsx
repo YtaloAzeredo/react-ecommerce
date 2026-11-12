@@ -1,11 +1,9 @@
-import type { ProductSort } from '../model/types'
-import { FilterSelect, type FilterOption } from './FilterSelect'
+import { parseSort } from '../hooks/useCatalogParams'
+import { sortLabels } from '../model/sortLabels'
+import { productSorts, type ProductSort } from '../model/types'
+import { FilterSelect } from './FilterSelect'
 
-const sortOptions: (FilterOption & { value: ProductSort })[] = [
-  { value: 'price-asc', label: 'Menor preço' },
-  { value: 'price-desc', label: 'Maior preço' },
-  { value: 'title-asc', label: 'Nome (A–Z)' },
-]
+const sortOptions = productSorts.map((sort) => ({ value: sort, label: sortLabels[sort].option }))
 
 export function SortSelect({
   value,
@@ -20,9 +18,7 @@ export function SortSelect({
       emptyLabel="Padrão"
       options={sortOptions}
       value={value}
-      onChange={(next) =>
-        onChange(sortOptions.find((option) => option.value === next)?.value ?? null)
-      }
+      onChange={(next) => onChange(parseSort(next))}
     />
   )
 }
