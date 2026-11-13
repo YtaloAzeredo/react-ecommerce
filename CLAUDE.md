@@ -1,6 +1,6 @@
 # Vitrine (react-ecommerce)
 
-Loja virtual de portfólio em React. Detalhes no `README.md`; design e plano em `tasks/` (fora do git).
+Loja virtual de estudos em React. Detalhes no `README.md`; design e plano em `tasks/` (fora do git).
 
 ## Ambiente
 
