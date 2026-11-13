@@ -2,7 +2,7 @@ import { act, screen } from '@testing-library/react'
 import { delay, http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
 import { API_URL } from '@/shared/api/http'
-import { productDetailHandler } from '@/test/catalogHandlers'
+import { catalogHandlers, productDetailHandler } from '@/test/catalogHandlers'
 import { makeProductDto, makeProductListDto } from '@/test/fixtures'
 import { createTestQueryClient } from '@/test/queryClient'
 import { renderRoute } from '@/test/renderRoute'
@@ -11,6 +11,15 @@ import { toProductPage } from '../api/productAdapter'
 import { productKeys } from '../queries'
 
 describe('ProductDetailPage', () => {
+  it('a imagem do produto tem prioridade alta de carregamento', async () => {
+    server.use(...catalogHandlers())
+    renderRoute('/products/1')
+
+    const image = await screen.findByRole('img', { name: 'Produto 1' })
+
+    expect(image).toHaveAttribute('fetchpriority', 'high')
+  })
+
   it('abre na hora com os dados da lista', async () => {
     server.use(
       productDetailHandler({

@@ -2,7 +2,7 @@ import { Link } from 'react-router'
 import { formatPrice } from '@/shared/lib/formatPrice'
 import type { Product } from '../model/types'
 
-export function ProductCard({ product }: { product: Product }) {
+export function ProductCard({ product, eager = false }: { product: Product; eager?: boolean }) {
   return (
     <Link
       to={`/products/${product.id}`}
@@ -11,7 +11,7 @@ export function ProductCard({ product }: { product: Product }) {
       <img
         src={product.thumbnailUrl}
         alt=""
-        loading="lazy"
+        loading={eager ? 'eager' : 'lazy'}
         className="aspect-square w-full object-contain"
       />
       <h2 className="mt-3 line-clamp-2 font-medium">{product.title}</h2>

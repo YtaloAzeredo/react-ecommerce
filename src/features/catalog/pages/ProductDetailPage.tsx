@@ -109,6 +109,7 @@ function ProductInfo({
       <img
         src={imageUrls[0] ?? thumbnailUrl}
         alt={title}
+        fetchPriority="high"
         className="aspect-square w-full rounded-lg border border-slate-200 bg-white object-contain"
       />
       <div className="flex flex-col gap-3">

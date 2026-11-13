@@ -156,3 +156,25 @@ Com `npm run dev` rodando:
 | `4000 0000 0000 0002` | recusado (mostra o erro e mantém o formulário) |
 
 Pix e boleto são sempre aprovados.
+
+## Qualidade
+
+Medido em 2026-11-13 no build de produção (`npm run build` servido por `npm run preview`), com Lighthouse 12 no perfil padrão (celular, rede 4G lenta simulada) e axe-core 4 em todas as telas, a 1280 px e 320 px.
+
+| Página         | Performance | Acessibilidade | Boas práticas | SEO |
+| -------------- | ----------- | -------------- | ------------- | --- |
+| `/` (catálogo) | 89–93       | 100            | 100           | 100 |
+| `/products/1`  | 93          | 100            | 100           | 100 |
+| `/cart`        | 98          | 100            | 100           | 100 |
+
+axe-core: nenhuma violação no catálogo, no detalhe, no carrinho, no checkout (com e sem erros de validação), na confirmação e na página 404.
+
+O que segura a performance no celular é o JavaScript do caminho crítico (cerca de 145 kB comprimidos: o chunk de entrada e o chunk compartilhado que ele importa) e as imagens do CDN da DummyJSON, que o app não controla. As quatro primeiras imagens do catálogo não esperam a rolagem, a imagem do detalhe pede prioridade alta, e o `index.html` abre a conexão com a API e o CDN padrão (`dummyjson.com`) antes do JavaScript pedir; com `VITE_API_URL` apontando para outro endereço, esse `preconnect` deixa de ajudar.
+
+Para repetir a medição, com o preview rodando e o Chrome instalado (a versão 12 do Lighthouse é a usada na tabela; versões mais novas podem pontuar diferente):
+
+```bash
+npx lighthouse@12 http://localhost:4173/ --chrome-flags="--headless=new" --view
+```
+
+Para o axe, use a extensão do navegador ou injete `axe-core` por um script de automação e chame `axe.run()`, com as regras WCAG 2.0, 2.1 e 2.2 (A e AA) e as boas práticas.

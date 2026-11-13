@@ -137,6 +137,19 @@ describe('CatalogPage', () => {
     expect(await screen.findByRole('link', { name: productLink(21) })).toBeInTheDocument()
   })
 
+  it('as quatro primeiras imagens carregam na hora e as outras sob demanda', async () => {
+    renderRoute('/')
+    await screen.findByRole('link', { name: productLink(1) })
+
+    const images = [...screen.getByRole('main').querySelectorAll('img')]
+
+    expect(images).toHaveLength(12)
+    expect(images.slice(0, 4).map((img) => img.getAttribute('loading'))).toEqual(
+      Array(4).fill('eager'),
+    )
+    expect(images.slice(4).map((img) => img.getAttribute('loading'))).toEqual(Array(8).fill('lazy'))
+  })
+
   it('mostra o preço formatado no card', async () => {
     server.use(
       categoryProductsHandler({
