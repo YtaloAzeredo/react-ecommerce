@@ -1,14 +1,27 @@
+import { formatPrice } from '@/shared/lib/formatPrice'
 import { BRAZILIAN_STATES } from '../model/checkoutSchema'
 import { formatCep } from '../model/masks'
+import type { ShippingQuote } from '../model/shipping'
 import { FormField, SelectField } from './FormField'
 
-export function AddressFields() {
+function describeShipping(quote: ShippingQuote | null): string {
+  if (!quote) return ''
+  const delivery = `até ${quote.deliveryDays} dias úteis.`
+  return quote.costCents === 0
+    ? `Frete grátis para este CEP, ${delivery}`
+    : `Frete para este CEP: ${formatPrice(quote.costCents)}, ${delivery}`
+}
+
+export function AddressFields({ shipping }: { shipping: ShippingQuote | null }) {
+  const shippingHint = describeShipping(shipping)
+
   return (
     <fieldset className="grid gap-4 sm:grid-cols-6">
       <legend className="mb-2 text-lg font-semibold">Endereço</legend>
       <FormField
         name="address.cep"
         label="CEP"
+        hint={shippingHint}
         mask={formatCep}
         inputMode="numeric"
         autoComplete="postal-code"

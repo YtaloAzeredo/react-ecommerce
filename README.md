@@ -7,7 +7,7 @@ Loja virtual de mentira, feita em React para portfólio. Ninguém compra nada de
 O projeto existe para mostrar, em código e funcionando, quatro coisas comuns em front-end de mercado:
 
 - **Paginação** feita pelo servidor, com a página, o filtro, a busca e a ordenação na URL (dá para atualizar ou compartilhar o link sem perder onde estava).
-- **Estado de formulário** num checkout com validação por campo, máscaras, campos que mudam conforme a forma de pagamento, envio assíncrono com tratamento de erro e rascunho preservado.
+- **Estado de formulário** num checkout com validação por campo, máscaras, campos que mudam conforme a forma de pagamento, frete calculado pelo CEP, envio assíncrono com tratamento de erro e rascunho preservado.
 - **Cache de telas:** sair da página 3 do catálogo, abrir um produto e voltar faz a lista aparecer na hora, na mesma página e na mesma posição de rolagem, sem carregar de novo.
 - **Padrões de projeto** usados no dia a dia, aplicados onde fazem sentido.
 
@@ -61,6 +61,7 @@ Escolhas que não dá para ver só lendo o código:
 - **Trocar de categoria ou de ordenação é anunciado, sem mover o foco.** O foco fica no select (puxá-lo para o título tiraria a pessoa de onde ela estava ao confirmar com Tab), então uma região `status` invisível diz o que chegou: "10 produtos em Smartphones, do menor para o maior preço.". Só anuncia a lista escolhida no select, quando ela chega; não anuncia ao abrir a URL, com zero resultados (o vazio já é anunciado) nem depois de uma nova tentativa, e o texto some ao sair dessa lista (`CatalogPage`).
 - **Busca e categoria não se combinam.** A DummyJSON não tem busca dentro de uma categoria, e filtrar no cliente quebraria a paginação do servidor e mentiria no total. Buscar limpa a categoria; escolher uma categoria limpa a busca; na URL, `q` vence `category`. A busca só acontece ao confirmar (Enter ou o botão), não a cada tecla, e o foco vai para o título quando a lista nova chega (`useCatalogParams`, `SearchForm`, `CatalogPage`).
 - **A ordenação atravessa os filtros.** Trocar de página, de categoria ou de termo de busca mantém o `sort`; só o select "Ordenar por" muda a ordem, e aí a lista volta à página 1. A ordem é do servidor (`sortBy` e `order` da DummyJSON, que valem nas três rotas de lista); um valor de `sort` fora da lista conhecida conta como "Padrão" e não vai para a API. A opção se chama "Padrão", e não "Relevância", porque na busca a API não ordena por relevância (`useCatalogParams`, `SortSelect`, `productsApi`).
+- **O frete é simulado por zona de CEP.** Não há API de CEP: a loja é uma demonstração e a DummyJSON é a única dependência externa. O primeiro dígito do CEP define a zona: 0 a 3, 8 e 9 (Sul e Sudeste) US$ 9,90 em até 3 dias úteis; 4, 5 e 7 (Bahia, Sergipe, Nordeste de Pernambuco ao Rio Grande do Norte, Centro-Oeste, DF, Tocantins e Rondônia) US$ 19,90 em até 6; 6 (Amazonas, Pará, Acre, Amapá, Roraima, Maranhão, Piauí e Ceará) US$ 29,90 em até 10. O frete é grátis a partir de US$ 300,00 de produtos. O desconto do Pix vale só sobre os produtos; o parcelamento do cartão é sobre o total com frete. A cotação aparece como dica do campo CEP, numa região `status`, para leitores de tela ouvirem o frete ao completar o CEP (`quoteShipping`, `AddressFields`, `OrderSummary`).
 - **Quando uma página nova falha, a paginação continua na tela.** O total de páginas vem de qualquer página da mesma categoria ou da mesma busca que já esteja no cache; sem isso só sobraria "Tentar novamente" (`CatalogPage`).
 - **O carrinho fica igual em todas as abas.** Cada aba guarda o carrinho em memória e regrava o `localStorage` a cada mudança; sem ouvir o evento `storage`, uma aba aberta antes apagaria o que a outra adicionou (`CartProvider`).
 - **Apagar o campo de quantidade não remove o item.** O texto em edição fica só no campo e só um inteiro a partir de 1 chega ao carrinho; para remover existe o botão "Remover" (`CartLineItem`).
@@ -130,13 +131,14 @@ O app é publicado na [Vercel](https://vercel.com), conectada ao repositório do
   - fica salvo no `localStorage`, e dado corrompido vira carrinho vazio.
 - **Checkout:**
   - dados pessoais, endereço e pagamento por cartão de crédito (até 12x sem juros, com a primeira parcela absorvendo os centavos), Pix (5% de desconto) ou boleto;
+  - frete calculado pelo CEP, mostrado abaixo do campo e no resumo, somado ao total; grátis a partir de US$ 300,00 de produtos;
   - validação campo a campo e máscaras de CPF, telefone, CEP e cartão;
   - os campos mudam conforme a forma de pagamento, o total é recalculado, e o cartão digitado volta ao escolher cartão de novo;
   - o envio é simulado com cerca de 1 s de espera, e o botão fica desabilitado enquanto envia, então um clique duplo não gera dois pedidos;
   - um pagamento recusado mostra o erro sem perder o que foi digitado;
   - dados pessoais e endereço ficam salvos como rascunho na aba (`sessionStorage`); dados de pagamento nunca são salvos.
-- **Confirmação:** mostra o número do pedido, o total e a forma de pagamento.
-- **Acessibilidade:** o foco do teclado é tratado nas ações principais. Ao trocar de página ele vai para o conteúdo, botões que ficam indisponíveis continuam com o foco, e depois de remover um item ou tentar carregar de novo ele vai para um lugar previsível. Leitores de tela são avisados das mudanças principais: lista nova ao trocar de categoria ou de ordenação, subtotal, item adicionado, carrinho esvaziado, envio do pedido, nova tentativa de carregar e erros.
+- **Confirmação:** mostra o número do pedido, o frete, o prazo de entrega, o total e a forma de pagamento.
+- **Acessibilidade:** o foco do teclado é tratado nas ações principais. Ao trocar de página ele vai para o conteúdo, botões que ficam indisponíveis continuam com o foco, e depois de remover um item ou tentar carregar de novo ele vai para um lugar previsível. Leitores de tela são avisados das mudanças principais: lista nova ao trocar de categoria ou de ordenação, frete calculado ao completar o CEP, subtotal, item adicionado, carrinho esvaziado, envio do pedido, nova tentativa de carregar e erros.
 - **Carregamento sob demanda:** o código do checkout (formulário, validação e formas de pagamento) só é baixado quando a pessoa vai finalizar a compra. Enquanto ele chega, uma barra no topo mostra que a página está carregando.
 
 ## Para testar
@@ -145,6 +147,7 @@ Com `npm run dev` rodando:
 
 - **Cache de telas:** vá até a página 3 do catálogo, role a página, abra um produto e clique em "Voltar". A lista aparece na hora, na mesma posição.
 - **Busca e ordenação:** escolha "Menor preço" em "Ordenar por", busque "phone" e troque a categoria: a ordem se mantém e a URL mostra `sort=price-asc`; "Padrão" tira a ordenação.
+- **Frete:** o CEP define a zona. `01310-100` (SP) cobra US$ 9,90 em até 3 dias úteis; `70040-010` (DF) US$ 19,90 em até 6; `69005-000` (AM) US$ 29,90 em até 10. Com US$ 300,00 ou mais em produtos, o frete sai grátis.
 - **Checkout:** use dados fictícios. O CPF `529.982.247-25` é válido para teste, e qualquer validade futura serve para o cartão.
 
 | Cartão                | Resultado                                      |

@@ -5,10 +5,15 @@ import { getPaymentStrategy, paymentStrategies } from '../payment/paymentStrateg
 
 function isOrderConfirmation(value: unknown): value is OrderConfirmation {
   if (typeof value !== 'object' || value === null) return false
-  const { orderId, totalCents, paymentMethod } = value as Record<string, unknown>
+  const { orderId, totalCents, paymentMethod, shippingCents, deliveryDays } = value as Record<
+    string,
+    unknown
+  >
   return (
     typeof orderId === 'string' &&
     typeof totalCents === 'number' &&
+    typeof shippingCents === 'number' &&
+    typeof deliveryDays === 'number' &&
     paymentStrategies.some((strategy) => strategy.method === paymentMethod)
   )
 }
@@ -16,7 +21,7 @@ function isOrderConfirmation(value: unknown): value is OrderConfirmation {
 export function OrderSuccessPage() {
   const { state } = useLocation()
   if (!isOrderConfirmation(state)) return <Navigate to="/" replace />
-  const { orderId, totalCents, paymentMethod } = state
+  const { orderId, totalCents, paymentMethod, shippingCents, deliveryDays } = state
 
   return (
     <section className="mx-auto flex max-w-lg flex-col items-center gap-6 py-16 text-center">
@@ -25,6 +30,10 @@ export function OrderSuccessPage() {
       <dl className="grid w-full grid-cols-[auto_1fr] gap-x-6 gap-y-2 rounded-lg border border-slate-200 bg-white p-4 text-left">
         <dt className="text-slate-600">Número do pedido</dt>
         <dd className="font-mono font-semibold">{orderId}</dd>
+        <dt className="text-slate-600">Frete</dt>
+        <dd>{shippingCents === 0 ? 'Grátis' : formatPrice(shippingCents)}</dd>
+        <dt className="text-slate-600">Entrega</dt>
+        <dd>até {deliveryDays} dias úteis</dd>
         <dt className="text-slate-600">Total</dt>
         <dd className="font-semibold">{formatPrice(totalCents)}</dd>
         <dt className="text-slate-600">Pagamento</dt>

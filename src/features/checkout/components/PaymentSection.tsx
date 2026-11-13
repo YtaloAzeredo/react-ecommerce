@@ -6,7 +6,7 @@ import { getPaymentStrategy, paymentStrategies } from '../payment/paymentStrateg
 type PaymentValues = CheckoutFormValues['payment']
 type CardValues = Extract<PaymentValues, { method: 'credit_card' }>
 
-export function PaymentSection({ subtotalCents }: { subtotalCents: number }) {
+export function PaymentSection({ totalCents }: { totalCents: number }) {
   const { control, getValues, setValue, clearErrors, trigger, formState } =
     useFormContext<CheckoutFormValues>()
   const method = useWatch({ control, name: 'payment.method' })
@@ -49,7 +49,7 @@ export function PaymentSection({ subtotalCents }: { subtotalCents: number }) {
           </div>
         ))}
       </div>
-      {Fields && <Fields totalCents={strategy.computeTotalCents(subtotalCents)} />}
+      {Fields && <Fields totalCents={totalCents} />}
     </fieldset>
   )
 }

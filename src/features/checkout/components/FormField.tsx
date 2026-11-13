@@ -81,11 +81,12 @@ function applyMask(input: HTMLInputElement, mask: (value: string) => string) {
 type FormFieldProps = Omit<ComponentProps<'input'>, 'name' | 'id' | 'onChange'> & {
   name: CheckoutFieldPath
   label: string
+  hint?: string
   mask?: (value: string) => string
 }
 
-export function FormField({ name, label, mask, className, ...inputProps }: FormFieldProps) {
-  const { register, shell, controlProps } = useFieldState(name)
+export function FormField({ name, label, hint, mask, className, ...inputProps }: FormFieldProps) {
+  const { register, shell, controlProps } = useFieldState(name, hint)
   const { onChange, ...field } = register(name)
 
   return (

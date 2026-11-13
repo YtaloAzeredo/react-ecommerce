@@ -20,7 +20,9 @@ const pixOrder: OrderRequest = {
   },
   payment: { method: 'pix' },
   items: [makeCartItem({ priceCents: 10000 })],
-  totalCents: 9500,
+  shippingCents: 990,
+  deliveryDays: 3,
+  totalCents: 10490,
 }
 
 function cardOrder(cardNumber: string): OrderRequest {
@@ -34,7 +36,7 @@ function cardOrder(cardNumber: string): OrderRequest {
       cvv: '123',
       installments: 1,
     },
-    totalCents: 10000,
+    totalCents: 10990,
   }
 }
 
@@ -48,15 +50,17 @@ describe('submitOrder', () => {
 
     expect(confirmation).toEqual({
       orderId: expect.stringMatching(/^[0-9A-F]{8}$/),
-      totalCents: 9500,
+      totalCents: 10490,
       paymentMethod: 'pix',
+      shippingCents: 990,
+      deliveryDays: 3,
     })
   })
 
   it('cartão comum é aprovado', async () => {
     const confirmation = await submitOrder(cardOrder('4242 4242 4242 4242'), { delayMs: 0 })
 
-    expect(confirmation).toMatchObject({ totalCents: 10000, paymentMethod: 'credit_card' })
+    expect(confirmation).toMatchObject({ totalCents: 10990, paymentMethod: 'credit_card' })
   })
 
   it('cartão de teste recusado', async () => {

@@ -49,6 +49,12 @@ function summary() {
   return within(screen.getByRole('region', { name: 'Resumo do pedido' }))
 }
 
+function summaryValue(term: string) {
+  return summary()
+    .getByText(term)
+    .nextElementSibling?.textContent?.replace(/\u00a0/g, ' ')
+}
+
 describe('CheckoutPage', () => {
   beforeEach(() => {
     vi.mocked(submitOrder).mockReset()
@@ -175,8 +181,10 @@ describe('CheckoutPage', () => {
   it('pedido por Pix depois de digitar o cartão não envia o cartão', async () => {
     vi.mocked(submitOrder).mockResolvedValue({
       orderId: 'AB12CD34',
-      totalCents: 9500,
+      totalCents: 10490,
       paymentMethod: 'pix',
+      shippingCents: 990,
+      deliveryDays: 3,
     })
     const { user } = await openCheckout()
     await fillCustomerAndAddress(user)
@@ -221,7 +229,13 @@ describe('CheckoutPage', () => {
   })
 
   it('pedido aprovado limpa o carrinho e vai para a confirmação', async () => {
-    const confirmation = { orderId: 'AB12CD34', totalCents: 9500, paymentMethod: 'pix' as const }
+    const confirmation = {
+      orderId: 'AB12CD34',
+      totalCents: 10490,
+      paymentMethod: 'pix' as const,
+      shippingCents: 990,
+      deliveryDays: 3,
+    }
     vi.mocked(submitOrder).mockResolvedValue(confirmation)
     const { user, router } = await openCheckout()
     await fillCustomerAndAddress(user)
@@ -238,25 +252,29 @@ describe('CheckoutPage', () => {
     ).toBeInTheDocument()
     expect(router.state.location.pathname).toBe('/checkout/success')
     expect(router.state.location.state).toEqual(confirmation)
-    expect(screen.getByRole('link', { name: 'Carrinho (0 itens)' })).toBeInTheDocument()
+    expect(await screen.findByRole('link', { name: 'Carrinho (0 itens)' })).toBeInTheDocument()
     expect(submitOrder).toHaveBeenCalledTimes(1)
     expect(submitOrder).toHaveBeenCalledWith(
       expect.objectContaining({
-        totalCents: 9500,
+        totalCents: 10490,
+        shippingCents: 990,
+        deliveryDays: 3,
         items: [cartItem],
         payment: { method: 'pix' },
         customer: expect.objectContaining({ cpf: '529.982.247-25' }),
       }),
     )
-    expect(loadCart().items).toEqual([])
+    await waitFor(() => expect(loadCart().items).toEqual([]))
     expect(loadCheckoutDraft()).toBeNull()
   })
 
   it('cartão aprovado envia os dados do cartão e o parcelamento', async () => {
     vi.mocked(submitOrder).mockResolvedValue({
       orderId: 'AB12CD34',
-      totalCents: 10000,
+      totalCents: 10990,
       paymentMethod: 'credit_card',
+      shippingCents: 990,
+      deliveryDays: 3,
     })
     const { user, router } = await openCheckout()
     await fillCustomerAndAddress(user)
@@ -270,7 +288,7 @@ describe('CheckoutPage', () => {
     })
     expect(submitOrder).toHaveBeenCalledWith(
       expect.objectContaining({
-        totalCents: 10000,
+        totalCents: 10990,
         payment: expect.objectContaining({
           method: 'credit_card',
           cardNumber: '4242 4242 4242 4242',
@@ -278,6 +296,133 @@ describe('CheckoutPage', () => {
         }),
       }),
     )
+  })
+
+  it('digitar o CEP mostra e anuncia o frete, e ele entra no total', async () => {
+    const { user } = await openCheckout()
+    expect(summaryValue('Frete')).toBe('a calcular')
+    expect(summaryValue('Total')).toBe('US$ 100,00')
+
+    await fill(user, 'CEP', '0131010')
+    expect(screen.queryByText(/Frete para este CEP/)).not.toBeInTheDocument()
+    expect(summaryValue('Frete')).toBe('a calcular')
+
+    await user.type(screen.getByLabelText('CEP'), '0')
+
+    const hint = screen.getByText('Frete para este CEP: US$ 9,90, até 3 dias úteis.')
+    expect(hint).toHaveAttribute('role', 'status')
+    expect(screen.getByLabelText('CEP')).toHaveAccessibleDescription(
+      'Frete para este CEP: US$\u00a09,90, até 3 dias úteis.',
+    )
+    expect(summaryValue('Frete')).toBe('US$ 9,90')
+    expect(summaryValue('Total')).toBe('US$ 109,90')
+  })
+
+  it('Pix desconta só os produtos, não o frete', async () => {
+    const { user } = await openCheckout()
+    await fill(user, 'CEP', '69005000')
+
+    await user.click(screen.getByRole('radio', { name: 'Pix' }))
+
+    expect(summaryValue('Subtotal')).toBe('US$ 100,00')
+    expect(summaryValue('Desconto')).toBe('-US$ 5,00')
+    expect(summaryValue('Frete')).toBe('US$ 29,90')
+    expect(summaryValue('Total')).toBe('US$ 124,90')
+  })
+
+  it('frete grátis a partir de US$ 300,00 de produtos', async () => {
+    seedCart([makeCartItem({ productId: 1, priceCents: 15000, quantity: 2 })])
+    const { user } = await openCheckout()
+
+    await fill(user, 'CEP', '69005000')
+
+    expect(screen.getByText('Frete grátis para este CEP, até 10 dias úteis.')).toHaveAttribute(
+      'role',
+      'status',
+    )
+    expect(summaryValue('Frete')).toBe('Grátis')
+    expect(summaryValue('Total')).toBe('US$ 300,00')
+  })
+
+  it('o parcelamento é sobre o total com frete', async () => {
+    const { user } = await openCheckout()
+    await fillCustomerAndAddress(user)
+
+    expect(
+      screen.getByRole('option', { name: '2x de US$\u00a054,95 sem juros' }),
+    ).toBeInTheDocument()
+  })
+
+  it('as regiões vivas não anunciam valores de carrinho vazio ao concluir o pedido', async () => {
+    vi.mocked(submitOrder).mockResolvedValue({
+      orderId: 'AB12CD34',
+      totalCents: 10990,
+      paymentMethod: 'credit_card',
+      shippingCents: 990,
+      deliveryDays: 3,
+    })
+    const { user, router } = await openCheckout()
+    await fillCustomerAndAddress(user)
+    await fillCard(user, '4242424242424242')
+    await user.selectOptions(screen.getByLabelText('Parcelamento'), '7')
+    const statusTexts = () =>
+      [...document.querySelectorAll('[role="status"]')].map((region) => region.textContent ?? '')
+    const before = new Set(statusTexts())
+    const seen = new Set<string>()
+    const observer = new MutationObserver(() => {
+      for (const text of statusTexts()) if (text && !before.has(text)) seen.add(text)
+    })
+    observer.observe(document.body, { subtree: true, childList: true, characterData: true })
+
+    await user.click(screen.getByRole('button', { name: 'Finalizar pedido' }))
+    await waitFor(() => expect(router.state.location.pathname).toBe('/checkout/success'), {
+      timeout: 5000,
+    })
+    observer.disconnect()
+
+    expect([...seen].filter((text) => /parcela|Frete/.test(text))).toEqual([])
+  })
+
+  it('o pedido leva o frete e o prazo da zona do CEP', async () => {
+    vi.mocked(submitOrder).mockResolvedValue({
+      orderId: 'AB12CD34',
+      totalCents: 11990,
+      paymentMethod: 'boleto',
+      shippingCents: 1990,
+      deliveryDays: 6,
+    })
+    const { user, router } = await openCheckout()
+    await fillCustomerAndAddress(user)
+    await user.clear(screen.getByLabelText('CEP'))
+    await fill(user, 'CEP', '70040010')
+    await user.click(screen.getByRole('radio', { name: 'Boleto' }))
+
+    await user.click(screen.getByRole('button', { name: 'Finalizar pedido' }))
+
+    await waitFor(() => expect(router.state.location.pathname).toBe('/checkout/success'), {
+      timeout: 5000,
+    })
+    expect(submitOrder).toHaveBeenCalledWith(
+      expect.objectContaining({ shippingCents: 1990, deliveryDays: 6, totalCents: 11990 }),
+    )
+  })
+
+  it('frete grátis é medido pelos produtos, antes do desconto do Pix', async () => {
+    seedCart([makeCartItem({ productId: 1, priceCents: 30000, quantity: 1 })])
+    const { user } = await openCheckout()
+    await fill(user, 'CEP', '01310100')
+    await user.click(screen.getByRole('radio', { name: 'Pix' }))
+
+    expect(screen.getByText('Frete grátis para este CEP, até 3 dias úteis.')).toBeInTheDocument()
+    expect(summaryValue('Desconto')).toBe('-US$ 15,00')
+    expect(summaryValue('Frete')).toBe('Grátis')
+    expect(summaryValue('Total')).toBe('US$ 285,00')
+  })
+
+  it('sem desconto a linha "Desconto" não aparece', async () => {
+    await openCheckout()
+
+    expect(summary().queryByText('Desconto')).not.toBeInTheDocument()
   })
 
   it('clique duplo envia um pedido só', async () => {

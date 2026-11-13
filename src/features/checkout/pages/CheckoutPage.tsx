@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useEffect, useRef, useState } from 'react'
+import { startTransition, useEffect, useRef, useState } from 'react'
 import { FormProvider, useForm, useWatch } from 'react-hook-form'
 import { Navigate, useNavigate } from 'react-router'
 import { useCart } from '@/features/cart/useCart'
@@ -10,6 +10,7 @@ import { OrderSummary } from '../components/OrderSummary'
 import { PaymentSection } from '../components/PaymentSection'
 import { clearCheckoutDraft, loadCheckoutDraft, saveCheckoutDraft } from '../model/checkoutDraft'
 import { checkoutSchema, type CheckoutFormValues } from '../model/checkoutSchema'
+import { quoteShipping } from '../model/shipping'
 import { getPaymentStrategy } from '../payment/paymentStrategies'
 
 export function CheckoutPage() {
@@ -34,7 +35,10 @@ function CheckoutForm({ onOrderPlaced }: { onOrderPlaced: () => void }) {
     defaultValues,
   })
   const method = useWatch({ control: form.control, name: 'payment.method' })
-  const totalCents = getPaymentStrategy(method).computeTotalCents(subtotalCents)
+  const cep = useWatch({ control: form.control, name: 'address.cep' })
+  const shipping = quoteShipping(cep, subtotalCents)
+  const discountCents = subtotalCents - getPaymentStrategy(method).computeTotalCents(subtotalCents)
+  const totalCents = subtotalCents - discountCents + (shipping?.costCents ?? 0)
 
   useEffect(
     () =>
@@ -50,14 +54,25 @@ function CheckoutForm({ onOrderPlaced }: { onOrderPlaced: () => void }) {
   }, [submitError])
 
   async function onSubmit(values: CheckoutFormValues) {
+    const quote = quoteShipping(values.address.cep, subtotalCents)
+    if (!quote) {
+      form.setError('address.cep', { type: 'manual', message: 'CEP inválido' })
+      return
+    }
     setSubmitError(null)
     setSending(true)
     try {
-      const confirmation = await submitOrder({ ...values, items, totalCents })
+      const confirmation = await submitOrder({
+        ...values,
+        items,
+        shippingCents: quote.costCents,
+        deliveryDays: quote.deliveryDays,
+        totalCents: subtotalCents - discountCents + quote.costCents,
+      })
       onOrderPlaced()
-      clear()
       clearCheckoutDraft()
-      navigate('/checkout/success', { replace: true, state: confirmation })
+      await navigate('/checkout/success', { replace: true, state: confirmation })
+      startTransition(() => clear())
     } catch (error) {
       setSubmitError(
         error instanceof PaymentDeclinedError
@@ -82,11 +97,17 @@ function CheckoutForm({ onOrderPlaced }: { onOrderPlaced: () => void }) {
         >
           <fieldset disabled={sending} className="flex min-w-0 flex-col gap-8">
             <CustomerFields />
-            <AddressFields />
-            <PaymentSection subtotalCents={subtotalCents} />
+            <AddressFields shipping={shipping} />
+            <PaymentSection totalCents={totalCents} />
           </fieldset>
           <div className="flex flex-col gap-4 lg:sticky lg:top-4">
-            <OrderSummary items={items} subtotalCents={subtotalCents} totalCents={totalCents} />
+            <OrderSummary
+              items={items}
+              subtotalCents={subtotalCents}
+              discountCents={discountCents}
+              shippingCents={shipping?.costCents ?? null}
+              totalCents={totalCents}
+            />
             {submitError && (
               <div
                 ref={errorRef}

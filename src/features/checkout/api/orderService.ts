@@ -4,6 +4,8 @@ import type { CheckoutFormValues, PaymentMethod } from '../model/checkoutSchema'
 
 export interface OrderRequest extends CheckoutFormValues {
   items: CartItem[]
+  shippingCents: number
+  deliveryDays: number
   totalCents: number
 }
 
@@ -11,6 +13,8 @@ export interface OrderConfirmation {
   orderId: string
   totalCents: number
   paymentMethod: PaymentMethod
+  shippingCents: number
+  deliveryDays: number
 }
 
 export const DECLINED_CARD_NUMBER = '4000000000000002'
@@ -40,5 +44,7 @@ export async function submitOrder(
     orderId: crypto.randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase(),
     totalCents: order.totalCents,
     paymentMethod: order.payment.method,
+    shippingCents: order.shippingCents,
+    deliveryDays: order.deliveryDays,
   }
 }

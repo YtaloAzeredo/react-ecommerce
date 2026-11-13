@@ -20,6 +20,17 @@ function FormWithStateError({ children }: { children: ReactNode }) {
   return <FormProvider {...form}>{children}</FormProvider>
 }
 
+describe('FormField com dica', () => {
+  it('descreve o campo pela dica numa região viva', () => {
+    render(<FormField name="address.cep" label="CEP" hint="Frete: US$ 9,90." />, {
+      wrapper: FormWrapper,
+    })
+
+    expect(screen.getByRole('status')).toHaveTextContent('Frete: US$ 9,90.')
+    expect(screen.getByLabelText('CEP')).toHaveAccessibleDescription('Frete: US$ 9,90.')
+  })
+})
+
 describe('SelectField com dica', () => {
   it('descreve o campo pelo erro e pela dica, nessa ordem', async () => {
     render(
